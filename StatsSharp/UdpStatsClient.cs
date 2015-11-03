@@ -1,47 +1,17 @@
-﻿using System.CodeDom;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
+using StatsSharp.Net;
 
 namespace StatsSharp
 {
-	public struct MetricValue
-	{
-		public static readonly Encoding Encoding = Encoding.ASCII;
-		internal readonly byte[] Bytes;
-
-		MetricValue(byte[] bytes) {
-			this.Bytes = bytes;
-		}
-
-		public static MetricValue Gauge(ulong value) => new MetricValue(Encoding.GetBytes($"{value}|g"));
-		public static MetricValue GaugeDelta(int delta) => new MetricValue(Encoding.GetBytes(delta < 0 ? $"{delta}|g" : $"+{delta}|g"));
-		public static MetricValue Counter(long value) => new MetricValue(Encoding.GetBytes($"{value}|c"));
-		public static MetricValue Time(ulong value) => new MetricValue(Encoding.GetBytes($"{value}|ms"));
-
-		public override string ToString() => Encoding.GetString(Bytes);
-	}
-
-	public struct StatsPrefix
-	{
-		readonly string prefix;
-
-		public StatsPrefix(string prefix) {
-			this.prefix = prefix.EndsWith(".") 
-				? prefix
-				: prefix + '.'; 
-		}
-
-		public override string ToString() { return prefix.TrimEnd('.'); }
-
-		public static string operator+(StatsPrefix lhs, string rhs) {return lhs.prefix + rhs; }
-	}
-
 	public class UdpStatsClient
 	{
 		const int DatagramSize = 512;
-		static readonly byte NameValueSeparator = MetricValue.Encoding.GetBytes(":").Single();
+		const byte NameValueSeparator = (byte)':';
+		const byte RecordSeparator = (byte)'\n';
+
 		readonly Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 		readonly IPEndPoint target;
 
@@ -58,12 +28,30 @@ namespace StatsSharp
 		}
 
 		public void Send(string name, MetricValue value) {
-			var datagram = new byte[DatagramSize];
-			var n = MetricValue.Encoding.GetBytes(name, 0, name.Length, datagram, 0);
-			datagram[n++] = NameValueSeparator;
-			value.Bytes.CopyTo(datagram, n);
-			n += value.Bytes.Length;
-			socket.SendTo(datagram, 0, n, SocketFlags.None, target);
+			var datagram = new Dgram(DatagramSize);
+			datagram.Append(name, MetricValue.Encoding);
+			datagram.Append(NameValueSeparator);
+			datagram.Append(value);
+			datagram.SendTo(socket, target);
+		}
+
+		public void Send(Metric metric){ Send(metric.Name, metric.Value) ;}
+
+		public void Send(IEnumerable<Metric> metrics) {
+			var datagram = new Dgram(DatagramSize);
+			foreach(var item in metrics) {
+				var start = datagram.Position;
+				var valueLen = 1 + item.Value.Bytes.Length + 1;
+				if(!datagram.TryAppend(item.Name, MetricValue.Encoding) || datagram.Capacity < valueLen) {
+					datagram.SendTo(socket, target, start);
+					datagram.Clear();
+					datagram.Append(item.Name, MetricValue.Encoding);
+				}
+				datagram.Append(NameValueSeparator);
+				datagram.Append(item.Value);
+				datagram.Append(RecordSeparator);
+			}
+			datagram.SendTo(socket, target);
 		}
 	}
 }

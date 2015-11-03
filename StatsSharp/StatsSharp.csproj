@@ -9,10 +9,11 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>StatsSharp</RootNamespace>
     <AssemblyName>StatsSharp</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <OutputPath>$(SolutionDir)\Build\$(Configuration)\$(MSBuildProjectName)</OutputPath>
     <IntermediateOutputPath>$(SolutionDir)\Build\obj\$(Configuration)\$(MSBuildProjectName)</IntermediateOutputPath>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -36,6 +37,9 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Metric.cs" />
+    <Compile Include="MetricValue.cs" />
+    <Compile Include="StatsPrefix.cs" />
     <Compile Include="UdpStatsClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
