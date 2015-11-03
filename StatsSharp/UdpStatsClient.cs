@@ -6,7 +6,7 @@ using StatsSharp.Net;
 
 namespace StatsSharp
 {
-	public class UdpStatsClient
+	public class UdpStatsClient : IStatsClient
 	{
 		const int DatagramSize = 512;
 		const byte NameValueSeparator = (byte)':';
@@ -34,8 +34,6 @@ namespace StatsSharp
 			datagram.Append(value);
 			datagram.SendTo(socket, target);
 		}
-
-		public void Send(Metric metric){ Send(metric.Name, metric.Value) ;}
 
 		public void Send(IEnumerable<Metric> metrics) {
 			var datagram = new Dgram(DatagramSize);
