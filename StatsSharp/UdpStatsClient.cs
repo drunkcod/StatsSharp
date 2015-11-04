@@ -2,14 +2,16 @@
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using StatsSharp.Net;
 
 namespace StatsSharp
 {
 	public class UdpStatsClient : IStatsClient
 	{
+		public static readonly Encoding Encoding = Encoding.ASCII;
+
 		const int DatagramSize = 512;
-		const byte NameValueSeparator = (byte)':';
 		const byte RecordSeparator = (byte)'\n';
 
 		readonly Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
@@ -29,9 +31,8 @@ namespace StatsSharp
 
 		public void Send(string name, MetricValue value) {
 			var datagram = new Dgram(DatagramSize);
-			datagram.Append(name, MetricValue.Encoding);
-			datagram.Append(NameValueSeparator);
-			datagram.Append(value);
+			datagram.TryAppend(name, Encoding);
+			datagram.TryAppend(value, Encoding);
 			datagram.SendTo(socket, target);
 		}
 
@@ -39,14 +40,10 @@ namespace StatsSharp
 			var datagram = new Dgram(DatagramSize);
 			foreach(var item in metrics) {
 				var start = datagram.Position;
-				var valueLen = 1 + item.Value.Bytes.Length + 1;
-				if(!datagram.TryAppend(item.Name, MetricValue.Encoding) || datagram.Capacity < valueLen) {
+				while(!datagram.TryAppend(item.Name, Encoding) || !datagram.TryAppend(item.Value, Encoding) || datagram.Capacity < 1) {
 					datagram.SendTo(socket, target, start);
 					datagram.Clear();
-					datagram.Append(item.Name, MetricValue.Encoding);
 				}
-				datagram.Append(NameValueSeparator);
-				datagram.Append(item.Value);
 				datagram.Append(RecordSeparator);
 			}
 			datagram.SendTo(socket, target);

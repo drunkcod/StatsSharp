@@ -1,14 +1,15 @@
-﻿using System.Net;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("StatsSharp")]
+[assembly: AssemblyTitle("StatsSharp.Specs")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyProduct("StatsSharp")]
+[assembly: AssemblyCompany("")]
+[assembly: AssemblyProduct("StatsSharp.Specs")]
 [assembly: AssemblyCopyright("Copyright ©  2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -19,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("30bffc70-0fa9-4134-87f7-883f0c86aeb2")]
+[assembly: Guid("91be7e4d-d77a-4496-824b-7414d4c0b53c")]
 
 // Version information for an assembly consists of the following four values:
 //
@@ -31,7 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.0.0.4")]
-
-[assembly: AssemblyDescription("StatsD made sharp")]
-[assembly: AssemblyCompany("Torbjörn Gyllebring <tobbe@drunkcod.com>")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]

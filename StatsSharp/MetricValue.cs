@@ -2,20 +2,35 @@
 
 namespace StatsSharp
 {
+	public enum MetricType : byte
+	{
+		Gauge, GaugeDelta, Counter, Time
+	}
+
 	public struct MetricValue
 	{
-		public static readonly Encoding Encoding = Encoding.ASCII;
-		internal readonly byte[] Bytes;
+		static readonly int[] MetaLength = { 3, 3, 3, 4 };
+		
+		readonly string value;
 
-		MetricValue(byte[] bytes) {
-			this.Bytes = bytes;
+		MetricValue(string value) {
+			this.value = value;
 		}
 
-		public static MetricValue Gauge(ulong value) => new MetricValue(Encoding.GetBytes($"{value}|g"));
-		public static MetricValue GaugeDelta(int delta) => new MetricValue(Encoding.GetBytes(delta < 0 ? $"{delta}|g" : $"+{delta}|g"));
-		public static MetricValue Counter(long value) => new MetricValue(Encoding.GetBytes($"{value}|c"));
-		public static MetricValue Time(ulong value) => new MetricValue(Encoding.GetBytes($"{value}|ms"));
+		public MetricType Type => 
+			value.EndsWith("g") ? (char.IsNumber(value[1]) ? MetricType.Gauge : MetricType.GaugeDelta)
+			: value.EndsWith("c") ? MetricType.Counter 
+			: MetricType.Time;
 
-		public override string ToString() => Encoding.GetString(Bytes);
+		public static MetricValue Gauge(ulong value) => new MetricValue($":{value}|g");
+		public static MetricValue GaugeDelta(int delta) => new MetricValue(delta < 0 ? $":{delta}|g" : $":+{delta}|g");
+		public static MetricValue Counter(long value) => new MetricValue($":{value}|c");
+		public static MetricValue Time(ulong value) => new MetricValue($":{value}|ms");
+
+		public override string ToString() => value?.Substring(1, value.Length - MetaLength[(int)Type]) ?? string.Empty;
+
+		public int GetBytes(Encoding encoding, byte[] target, int targetIndex) {
+			return encoding.GetBytes(value, 0, value.Length, target, targetIndex);
+		}
 	}
 }
