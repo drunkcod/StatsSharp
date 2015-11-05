@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics.Contracts;
+using System.Text;
 
 namespace StatsSharp
 {
@@ -29,6 +30,7 @@ namespace StatsSharp
 
 		public override string ToString() => value?.Substring(1, value.Length - MetaLength[(int)Type]) ?? string.Empty;
 
+		[Pure]
 		public int GetBytes(Encoding encoding, byte[] target, int targetIndex) {
 			return encoding.GetBytes(value, 0, value.Length, target, targetIndex);
 		}

@@ -18,18 +18,9 @@ namespace StatsSharp.Net
 		public int Position => position;
 		public int Capacity => bytes.Length - position;
 
-		public bool TryAppend(string name, Encoding encoding) {
+		public bool TryAppend(Metric metric, Encoding encoding) {
 			try {
-				position += encoding.GetBytes(name, 0, name.Length, bytes, position);
-				return true;
-			} catch(ArgumentException) {
-				return false;
-			}
-		}
-
-		public bool TryAppend(MetricValue value, Encoding encoding) {
-			try {
-				position += value.GetBytes(encoding, bytes, position);
+				position += metric.GetBytes(encoding, bytes, position);
 				return true;
 			} catch(ArgumentException) {
 				return false;

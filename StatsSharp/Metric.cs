@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
@@ -27,6 +28,11 @@ namespace StatsSharp
 				ParseValue(m.Groups["value"].Value, m.Groups["unit"].Value)
 			);
 			return true;
+		}
+
+		public int GetBytes(Encoding encoding, byte[] target, int targetOffset) {
+			var n = encoding.GetBytes(Name, 0, Name.Length, target, targetOffset);
+			return n + Value.GetBytes(encoding, target, targetOffset + n);
 		}
 
 		static MetricValue ParseValue(string value, string type) {

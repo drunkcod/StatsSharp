@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -29,10 +30,10 @@ namespace StatsSharp
 			return new UdpStatsClient(new IPEndPoint(ip, port));
 		}
 
-		public void Send(string name, MetricValue value) {
+		public void Send(Metric metric) {
 			var datagram = new Dgram(DatagramSize);
-			datagram.TryAppend(name, Encoding);
-			datagram.TryAppend(value, Encoding);
+			if(!datagram.TryAppend(metric, Encoding))
+				throw new ArgumentException();
 			datagram.SendTo(socket, target);
 		}
 
@@ -40,9 +41,11 @@ namespace StatsSharp
 			var datagram = new Dgram(DatagramSize);
 			foreach(var item in metrics) {
 				var start = datagram.Position;
-				while(!datagram.TryAppend(item.Name, Encoding) || !datagram.TryAppend(item.Value, Encoding) || datagram.Capacity < 1) {
+				if(!datagram.TryAppend(item, Encoding) || datagram.Capacity < 1) {
 					datagram.SendTo(socket, target, start);
 					datagram.Clear();
+					if(!datagram.TryAppend(item, Encoding))
+						throw new ArgumentException();
 				}
 				datagram.Append(RecordSeparator);
 			}
