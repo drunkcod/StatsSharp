@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace StatsSharp
 {
@@ -22,6 +23,10 @@ namespace StatsSharp
 
 		public static void Timer(this IStatsClient stats, string name, ulong value) {
 			stats.Send(new Metric(name, MetricValue.Time(value)));
+		}
+
+		public static void Timer(this IStatsClient stats, string name, TimeSpan value) {
+			stats.Timer(name, (ulong)value.TotalMilliseconds);
 		}
 
 		public static void GaugeAbsoluteValue(this IStatsClient stats, string name, int value) {
