@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GraphiteTextClient.cs" />
+    <Compile Include="GraphiteValue.cs" />
     <Compile Include="IStatsClient.cs" />
     <Compile Include="Net\Dgram.cs" />
     <Compile Include="Metric.cs" />

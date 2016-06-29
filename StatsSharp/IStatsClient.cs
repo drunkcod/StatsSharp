@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace StatsSharp
 {
@@ -7,6 +8,12 @@ namespace StatsSharp
 	{
 		void Send(Metric metric);
 		void Send(IEnumerable<Metric> metrics);
+	}
+
+	public class NullStatsClient : IStatsClient
+	{
+		public void Send(Metric metric) { }
+		public void Send(IEnumerable<Metric> metrics) { } 
 	}
 
 	public static class StatsClientExtensions
@@ -27,6 +34,12 @@ namespace StatsSharp
 
 		public static void Timer(this IStatsClient stats, string name, TimeSpan value) {
 			stats.Timer(name, (ulong)value.TotalMilliseconds);
+		}
+
+		public static void Timer(this IStatsClient stats, string name, Action action) {
+			var time = Stopwatch.StartNew();
+			action();
+			stats.Timer(name, time.Elapsed);
 		}
 
 		public static void GaugeAbsoluteValue(this IStatsClient stats, string name, int value) {
