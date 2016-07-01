@@ -46,6 +46,7 @@
   <ItemGroup>
     <Compile Include="MetricSpec.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StatsCollectionSpec.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
