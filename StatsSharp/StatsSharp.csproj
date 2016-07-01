@@ -39,6 +39,7 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GraphiteStatsCollection.cs" />
     <Compile Include="GraphiteTextClient.cs" />
     <Compile Include="GraphiteValue.cs" />
     <Compile Include="IStatsClient.cs" />

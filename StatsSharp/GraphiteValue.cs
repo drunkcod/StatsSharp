@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text;
 
 namespace StatsSharp
@@ -13,12 +14,19 @@ namespace StatsSharp
 
 		public DateTime TimeStamp => UnixExpoch.AddSeconds(unixTime);
 
-		public GraphiteValue(string name, double value, DateTime timeStamp) {
+		public static int ToUnixTime(DateTime timeStamp) => 
+			(int)timeStamp.ToUniversalTime().Subtract(UnixExpoch).TotalSeconds;
+
+		public GraphiteValue(string name, double value, DateTime timeStamp) : this(name, value, ToUnixTime(timeStamp))
+		{ }
+
+		public GraphiteValue(string name, double value, int unixTimestamp) {
 			this.Name = name;
 			this.Value = value;
-			this.unixTime = (int)timeStamp.ToUniversalTime().Subtract(UnixExpoch).TotalSeconds;
+			this.unixTime = unixTimestamp;
 		}
 
-		public byte[] GetBytes(Encoding encoding) { return encoding.GetBytes($"{Name} {Value} {unixTime}"); }
+		public byte[] GetBytes(Encoding encoding) => 
+			encoding.GetBytes(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", Name, Value, unixTime));
 	}
 }
