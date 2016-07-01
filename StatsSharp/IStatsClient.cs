@@ -28,6 +28,10 @@ namespace StatsSharp
 			stats.Send(new Metric(name, CountOfOne));
 		}
 
+		public static void Counter(this IStatsClient stats, string name, int count) {
+			stats.Send(new Metric(name, MetricValue.Counter(count)));
+		}
+
 		public static void Timer(this IStatsClient stats, string name, ulong value) {
 			stats.Send(new Metric(name, MetricValue.Time(value)));
 		}

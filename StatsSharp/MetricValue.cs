@@ -12,9 +12,11 @@ namespace StatsSharp
 	{
 		static readonly int[] MetaLength = { 3, 3, 3, 4 };
 		
+		public readonly ulong Bits;
 		readonly string value;
 
-		MetricValue(string value) {
+		MetricValue(ulong bits, string value) {
+			this.Bits = bits;
 			this.value = value;
 		}
 
@@ -23,10 +25,10 @@ namespace StatsSharp
 			: value.EndsWith("c") ? MetricType.Counter 
 			: MetricType.Time;
 
-		public static MetricValue Gauge(ulong value) => new MetricValue($":{value}|g");
-		public static MetricValue GaugeDelta(int delta) => new MetricValue(delta < 0 ? $":{delta}|g" : $":+{delta}|g");
-		public static MetricValue Counter(long value) => new MetricValue($":{value}|c");
-		public static MetricValue Time(ulong value) => new MetricValue($":{value}|ms");
+		public static MetricValue Gauge(ulong value) => new MetricValue(value, $":{value}|g");
+		public static MetricValue GaugeDelta(int delta) => new MetricValue((ulong)delta, delta < 0 ? $":{delta}|g" : $":+{delta}|g");
+		public static MetricValue Counter(long value) => new MetricValue((ulong)value, $":{value}|c");
+		public static MetricValue Time(ulong value) => new MetricValue(value, $":{value}|ms");
 
 		public override string ToString() => value?.Substring(1, value.Length - MetaLength[(int)Type]) ?? string.Empty;
 
