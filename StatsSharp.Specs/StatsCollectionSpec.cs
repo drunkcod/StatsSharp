@@ -56,8 +56,8 @@ namespace StatsSharp.Specs
 			Stats.Counter("MyCount", 4);
 
 			Check.That(
-				() => Stats.Summarize(TimeSpan.FromSeconds(10)).Single(x => x.Name == "stats_counts.MyCount").Value == 5,
-				() => Stats.Summarize(TimeSpan.FromSeconds(10)).Single(x => x.Name == "stats.MyCount").Value == 0.5);
+				() => Stats.Summarize(DateTime.Now, TimeSpan.FromSeconds(5)).Single(x => x.Name == "stats_counts.MyCount").Value == 5,
+				() => Stats.Summarize(DateTime.Now, TimeSpan.FromSeconds(5)).Single(x => x.Name == "stats.MyCount").Value == 1);
 		}
 
 		public void supports_metric_rescaling() {

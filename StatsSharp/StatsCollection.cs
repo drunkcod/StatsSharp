@@ -61,9 +61,9 @@ namespace StatsSharp
 				this.config = config;
 			} 
 
-			public StatsSummary Summarize(TimeSpan flushInterval) {
+			public StatsSummary Summarize(DateTime timeStamp, TimeSpan flushInterval) {
 				
-				return new StatsSummary(DateTime.UtcNow,
+				return new StatsSummary(timeStamp,
 					SummarizeGauges()
 					.Concat(SummarizeTimers())
 					.Concat(SummarizeCounts(flushInterval)).ToArray());
@@ -132,13 +132,13 @@ namespace StatsSharp
 
 		public List<double> Percentiles => config.Percentiles;
 
-		public StatsSummary Summarize() => Summarize(TimeSpan.FromSeconds(10));
+		public StatsSummary Summarize() => Summarize(DateTime.Now, TimeSpan.FromSeconds(10));
 
-		public StatsSummary Summarize(TimeSpan flushInterval) =>
-			buckets.Summarize(TimeSpan.FromSeconds(10));
+		public StatsSummary Summarize(DateTime timestamp, TimeSpan flushInterval) =>
+			buckets.Summarize(timestamp, flushInterval);
 
-		public StatsSummary Flush(TimeSpan flushInterval) => 
-			Interlocked.Exchange(ref buckets, new BucketCollection(config)).Summarize(flushInterval);
+		public StatsSummary Flush(DateTime timestamp, TimeSpan flushInterval) => 
+			Interlocked.Exchange(ref buckets, new BucketCollection(config)).Summarize(timestamp, flushInterval);
 
 		void IStatsClient.Send(Metric metric) {
 			switch(metric.Value.Type) {

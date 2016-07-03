@@ -71,8 +71,8 @@ namespace StatsSharp
 						if (DateTime.UtcNow - lastFlush < FlushInterval)
 							continue;
 
-						lastFlush = DateTime.UtcNow;
-						CurrentStats = collectedStats.Flush(FlushInterval);
+						lastFlush += FlushInterval;
+						CurrentStats = collectedStats.Flush(lastFlush, FlushInterval);
 					}
 				}
 				catch(Exception ex) {
