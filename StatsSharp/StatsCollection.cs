@@ -36,6 +36,18 @@ namespace StatsSharp
 		IEnumerator IEnumerable.GetEnumerator() => values.GetEnumerator();
 	}
 
+	public class StatsCollectionConfig
+	{
+		public readonly List<double> Percentiles = new List<double>();
+		public readonly Dictionary<string, double> Scales = new Dictionary<string, double>(); 
+
+		public double GetScale(string metricName) {
+			double scale;
+			return Scales.TryGetValue(metricName, out scale) ? scale : 1.0;
+		}
+
+	}
+
 	public class StatsCollection : IStatsClient
 	{
 		class BucketCollection
@@ -43,22 +55,24 @@ namespace StatsSharp
 			public readonly ConcurrentDictionary<string, ulong> Gauges = new ConcurrentDictionary<string, ulong>();
 			public readonly ConcurrentDictionary<string, ConcurrentBag<ulong>> Timers = new ConcurrentDictionary<string, ConcurrentBag<ulong>>();
 			public readonly ConcurrentDictionary<string, long> Counts = new ConcurrentDictionary<string, long>();
-			public readonly List<double> Percentiles;
+			readonly StatsCollectionConfig config;
 
-			public BucketCollection(List<double> percentiles) {
-				this.Percentiles = percentiles;	
+			public BucketCollection(StatsCollectionConfig config) {
+				this.config = config;
 			} 
 
 			public StatsSummary Summarize(TimeSpan flushInterval) {
 				
-				return new StatsSummary(DateTime.UtcNow, 
-					Gauges.Select(item => new StatsValue("stats.gauges." + item.Key, item.Value))
+				return new StatsSummary(DateTime.UtcNow,
+					SummarizeGauges()
 					.Concat(SummarizeTimers())
 					.Concat(SummarizeCounts(flushInterval)).ToArray());
 			}
 
-			private IEnumerable<StatsValue> SummarizeCounts(TimeSpan flushInterval)
-			{
+			IEnumerable<StatsValue> SummarizeGauges() =>
+				Gauges.Select(item => new StatsValue("stats.gauges." + item.Key, config.GetScale(item.Key) * item.Value));
+
+			IEnumerable<StatsValue> SummarizeCounts(TimeSpan flushInterval) {
 				foreach(var counter in Counts) {
 					yield return new StatsValue("stats_counts." + counter.Key, counter.Value);
 					yield return new StatsValue("stats." + counter.Key, counter.Value / flushInterval.TotalSeconds);
@@ -67,10 +81,11 @@ namespace StatsSharp
 
 			IEnumerable<StatsValue> SummarizeTimers() {
 				foreach(var timer in Timers) {
-					var items = timer.Value.ToList();
+					var scale = config.GetScale(timer.Key);
+					var items = timer.Value.Select(x => x * scale).ToList();
 					items.Sort();
 
-					if(Percentiles.Count > 0) {
+					if(config.Percentiles.Count > 0) {
 						var cumulativeValues = new double[items.Count];
 						cumulativeValues[0] = items[0];
 						for (var i = 1; i < items.Count; ++i)
@@ -79,7 +94,7 @@ namespace StatsSharp
 						var sumAtThreshold = (double)items[items.Count - 1];
 						var mean = (double)items[0];
 						var maxAtThreshold = (double)items[items.Count - 1];
-						foreach(var pct in Percentiles) {
+						foreach(var pct in config.Percentiles) {
 							if(items.Count > 1) {
 								var thresholdIndex = ((100.0 - pct) / 100.0) * items.Count;
 								var numInThreshold = Math.Round(items.Count - thresholdIndex);
@@ -95,7 +110,7 @@ namespace StatsSharp
 						}
 					}
 
-					var sum = items.Sum(x => (double)x);
+					var sum = items.Sum();
 
 					yield return new StatsValue("stats.timers." + timer.Key + ".upper", items[items.Count - 1]);
 					yield return new StatsValue("stats.timers." + timer.Key + ".lower", items[0]);
@@ -106,9 +121,16 @@ namespace StatsSharp
 			} 
 		}
 
-		BucketCollection buckets = new BucketCollection(new List<double>());
+		readonly StatsCollectionConfig config;
+		BucketCollection buckets;
 
-		public List<double> Percentiles => buckets.Percentiles;
+		public StatsCollection() : this(new StatsCollectionConfig()) { }
+		public StatsCollection(StatsCollectionConfig config) {
+			this.config = config;
+			this.buckets = new BucketCollection(config);
+		}
+
+		public List<double> Percentiles => config.Percentiles;
 
 		public StatsSummary Summarize() => Summarize(TimeSpan.FromSeconds(10));
 
@@ -116,7 +138,7 @@ namespace StatsSharp
 			buckets.Summarize(TimeSpan.FromSeconds(10));
 
 		public StatsSummary Flush(TimeSpan flushInterval) => 
-			Interlocked.Exchange(ref buckets, new BucketCollection(buckets.Percentiles)).Summarize(flushInterval);
+			Interlocked.Exchange(ref buckets, new BucketCollection(config)).Summarize(flushInterval);
 
 		void IStatsClient.Send(Metric metric) {
 			switch(metric.Value.Type) {
@@ -138,6 +160,10 @@ namespace StatsSharp
 		void IStatsClient.Send(IEnumerable<Metric> metrics) {
 			foreach(var item in metrics)
 				this.Send(item);
+		}
+
+		public void SetScale(string metricName, double scale) {
+			config.Scales[metricName] = scale;
 		}
 	}
 }

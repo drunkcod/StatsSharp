@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ namespace StatsSharp
 {
 	public class StatsAgent
 	{
+		StatsCollectionConfig config = new StatsCollectionConfig();
 		StatsCollection collectedStats;
 		Thread worker;
 		readonly ConcurrentBag<KeyValuePair<string, Func<ulong>>> counters = new ConcurrentBag<KeyValuePair<string, Func<ulong>>>();
@@ -19,18 +21,38 @@ namespace StatsSharp
 		public TimeSpan SampleInterval = TimeSpan.FromSeconds(1);
 		public IStatsClient Stats => (IStatsClient)collectedStats ?? NullStatsClient.Instance;
 
-		public void AddPerformanceCounter(string name, string path) {
+		public event EventHandler<ErrorEventArgs> OnError; 
+
+		public bool AddPerformanceCounter(string name, string path) => AddPerformanceCounter(name, path, null);
+		public bool AddPerformanceCounter(string name, string path, double? decimalScale) {
 			var m = Regex.Match(path, @"\\(?<category>.+)\((?<instance>.+)\)\\(?<counter>.+)");
-			AddPerformanceCounter(name, 
+			return AddPerformanceCounter(name, 
 				m.Groups["category"].Value,
 				m.Groups["counter"].Value,
-				m.Groups["instance"].Value
+				m.Groups["instance"].Value, 
+				decimalScale
 			);
 		}
 
-		public void AddPerformanceCounter(string name, string category, string counter, string instance) {
-			var pc = new PerformanceCounter(category, counter, instance, true);
-			counters.Add(new KeyValuePair<string,Func<ulong>>(name, () => (ulong)pc.NextValue()));
+		public bool AddPerformanceCounter(string name, string category, string counter, string instance, double? decimalScale = null) {
+			try {
+				var pc = new PerformanceCounter(category, counter, instance, true);
+				var scale = decimalScale ?? 1.0;
+				Func<ulong> takeSample = () => (ulong)(pc.NextValue() * scale);
+				AddCounter(name, takeSample, decimalScale);
+
+				return true;
+
+			} catch (Exception ex) {
+				OnError?.Invoke(this, new ErrorEventArgs(ex));
+				return false;
+			}
+		}
+
+		public void AddCounter(string name, Func<ulong> takeSample, double? decimalScale = null) {
+			counters.Add(new KeyValuePair<string, Func<ulong>>(name, takeSample));
+			if (decimalScale.HasValue)
+				config.Scales[name] = 1.0/decimalScale.Value;
 		}
 
 		public void Start() {
@@ -38,7 +60,7 @@ namespace StatsSharp
 				throw new InvalidOperationException("Agent already started.");
 
 			worker = new Thread(() => {
-				collectedStats = new StatsCollection();
+				collectedStats = new StatsCollection(config);
 				try {
 					Task nextSample;
 					for (var lastFlush = DateTime.UtcNow; ; nextSample.Wait()) {
@@ -53,8 +75,9 @@ namespace StatsSharp
 						CurrentStats = collectedStats.Flush(FlushInterval);
 					}
 				}
-				catch {
+				catch(Exception ex) {
 					collectedStats = null;
+					OnError?.Invoke(this, new ErrorEventArgs(ex));
 				}
 				worker = null;
 			});

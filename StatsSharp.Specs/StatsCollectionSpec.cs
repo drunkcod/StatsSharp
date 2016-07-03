@@ -58,7 +58,17 @@ namespace StatsSharp.Specs
 			Check.That(
 				() => Stats.Summarize(TimeSpan.FromSeconds(10)).Single(x => x.Name == "stats_counts.MyCount").Value == 5,
 				() => Stats.Summarize(TimeSpan.FromSeconds(10)).Single(x => x.Name == "stats.MyCount").Value == 0.5);
+		}
 
+		public void supports_metric_rescaling() {
+			Stats.GaugeAbsoluteValue("MyMetric", 100);
+			Stats.Timer("MyMetric", 100);
+
+			Stats.SetScale("MyMetric", 0.01);
+
+			Check.That(
+				() => Stats.Summarize().Single(x => x.Name == "stats.gauges.MyMetric").Value == 1,
+				() => Stats.Summarize().Single(x => x.Name == "stats.timers.MyMetric.mean").Value == 1);
 		}
 	}
 }

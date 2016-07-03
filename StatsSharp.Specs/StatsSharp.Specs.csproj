@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="StatsAgentSpec.cs" />
     <Compile Include="StatsCollectionSpec.cs" />
     <Compile Include="MetricSpec.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
