@@ -63,7 +63,7 @@ namespace StatsSharp
 				collectedStats = new StatsCollection(config);
 				try {
 					Task nextSample;
-					for (var lastFlush = DateTime.UtcNow; ; nextSample.Wait()) {
+					for (var lastFlush = AlignToInterval(DateTime.UtcNow, FlushInterval); ; nextSample.Wait()) {
 						nextSample = Task.Delay(SampleInterval);
 						foreach(var item in counters)
 							Stats.Timer(item.Key, item.Value());
@@ -74,8 +74,7 @@ namespace StatsSharp
 						lastFlush += FlushInterval;
 						CurrentStats = collectedStats.Flush(lastFlush, FlushInterval);
 					}
-				}
-				catch(Exception ex) {
+				} catch(Exception ex) {
 					collectedStats = null;
 					OnError?.Invoke(this, new ErrorEventArgs(ex));
 				}
@@ -83,4 +82,8 @@ namespace StatsSharp
 			});
 			worker.Start();
 		}
-	}}
+
+		static DateTime AlignToInterval(DateTime now, TimeSpan interval) =>
+			now.AddTicks(-now.TimeOfDay.Ticks % interval.Ticks);
+	}
+}
