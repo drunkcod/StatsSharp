@@ -21,7 +21,7 @@ namespace StatsSharp
 		public TimeSpan SampleInterval = TimeSpan.FromSeconds(1);
 		public IStatsClient Stats => (IStatsClient)collectedStats ?? NullStatsClient.Instance;
 
-		public event EventHandler<ErrorEventArgs> OnError; 
+		public event EventHandler<ErrorEventArgs> OnError;
 
 		public bool AddPerformanceCounter(string name, string path) => AddPerformanceCounter(name, path, null);
 		public bool AddPerformanceCounter(string name, string path, double? decimalScale) {

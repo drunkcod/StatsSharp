@@ -8,26 +8,30 @@ namespace StatsSharp.Specs
 	[Describe(typeof(StatsAgent))]
 	public class StatsAgentSpec
 	{
+		public StatsAgent Agent;
+
+		[BeforeEach]
+		public void given_a_StatsAgent() {
+			Agent = new StatsAgent();
+		}
+
 		public void raises_OnError_when_failing_to_add_performance_counter() {
-			var agent = new StatsAgent();
 			var onError = new EventSpy<ErrorEventArgs>();
-			agent.OnError += onError;
+			Agent.OnError += onError;
 			Check.That(
-				() => agent.AddPerformanceCounter("PerfC", @"\Bougs(_Total)\Metric") == false,
+				() => Agent.AddPerformanceCounter("PerfC", @"\Bougs(_Total)\Metric") == false,
 				() => onError.HasBeenCalled);
 		}
 
 		public void gracefully_handles_OnError_rasiing_exceptions() {
-			var agent = new StatsAgent();
 			var onError = new EventSpy<ErrorEventArgs>();
 
+			Agent.OnError += (_,e) => { throw new Exception(); };
+			Agent.OnError += onError;
+			//force a failure
+			Agent.AddPerformanceCounter("PerfC", @"\Bougs(_Total)\Metric");
 
-			agent.OnError += (_,e) => { throw new Exception(); };
-			agent.OnError += onError;
-			Check.That(
-				() => agent.AddPerformanceCounter("PerfC", @"\Bougs(_Total)\Metric") == false,
-				() => onError.HasBeenCalled
-			);
+			Check.That(() => onError.HasBeenCalled);
 		}
 	}
 }

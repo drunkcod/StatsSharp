@@ -48,7 +48,10 @@
     <Compile Include="Net\Dgram.cs" />
     <Compile Include="Metric.cs" />
     <Compile Include="MetricValue.cs" />
+    <Compile Include="StatsCollectionConfig.cs" />
     <Compile Include="StatsPrefix.cs" />
+    <Compile Include="StatsSummary.cs" />
+    <Compile Include="StatsValue.cs" />
     <Compile Include="UdpStatsClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

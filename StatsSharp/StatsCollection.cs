@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,46 +7,6 @@ using System.Threading;
 
 namespace StatsSharp
 {
-	public struct StatsValue
-	{
-		public readonly string Name;
-		public readonly double Value;
-
-		public StatsValue(string name, double value) {
-			this.Name = name;
-			this.Value = value;
-		}
-	}
-
-	public struct StatsSummary : IEnumerable<StatsValue>
-	{
-		readonly StatsValue[] values;
-		public readonly DateTime Timestamp;
-		
-		public int Count => values.Length;
-		public StatsValue this[int index] => values[index];
-
-		public StatsSummary(DateTime timestamp, StatsValue[] values) {
-			this.values = values;
-			this.Timestamp = timestamp;
-		}
-
-		public IEnumerator<StatsValue> GetEnumerator() => values.AsEnumerable().GetEnumerator();
-		IEnumerator IEnumerable.GetEnumerator() => values.GetEnumerator();
-	}
-
-	public class StatsCollectionConfig
-	{
-		public readonly List<double> Percentiles = new List<double>();
-		public readonly Dictionary<string, double> Scales = new Dictionary<string, double>(); 
-
-		public double GetScale(string metricName) {
-			double scale;
-			return Scales.TryGetValue(metricName, out scale) ? scale : 1.0;
-		}
-
-	}
-
 	public class StatsCollection : IStatsClient
 	{
 		class BucketCollection
