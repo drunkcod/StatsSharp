@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using Cone;
 using Cone.Helpers;
 
@@ -14,6 +15,19 @@ namespace StatsSharp.Specs
 			Check.That(
 				() => agent.AddPerformanceCounter("PerfC", @"\Bougs(_Total)\Metric") == false,
 				() => onError.HasBeenCalled);
+		}
+
+		public void gracefully_handles_OnError_rasiing_exceptions() {
+			var agent = new StatsAgent();
+			var onError = new EventSpy<ErrorEventArgs>();
+
+
+			agent.OnError += (_,e) => { throw new Exception(); };
+			agent.OnError += onError;
+			Check.That(
+				() => agent.AddPerformanceCounter("PerfC", @"\Bougs(_Total)\Metric") == false,
+				() => onError.HasBeenCalled
+			);
 		}
 	}
 }

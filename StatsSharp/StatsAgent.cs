@@ -44,7 +44,7 @@ namespace StatsSharp
 				return true;
 
 			} catch (Exception ex) {
-				OnError?.Invoke(this, new ErrorEventArgs(ex));
+				HandleError(ex);
 				return false;
 			}
 		}
@@ -76,11 +76,20 @@ namespace StatsSharp
 					}
 				} catch(Exception ex) {
 					collectedStats = null;
-					OnError?.Invoke(this, new ErrorEventArgs(ex));
+					HandleError(ex);
 				}
 				worker = null;
 			});
 			worker.Start();
+		}
+
+		void HandleError(Exception ex) {
+			var err = OnError;
+			if(err == null)
+				return;
+			var e = new ErrorEventArgs(ex);
+			foreach(EventHandler<ErrorEventArgs> handler in err.GetInvocationList())
+				try { handler(this, e); } catch { }
 		}
 
 		static DateTime AlignToInterval(DateTime now, TimeSpan interval) =>
