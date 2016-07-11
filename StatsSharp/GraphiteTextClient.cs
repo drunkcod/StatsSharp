@@ -1,10 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 
 namespace StatsSharp
 {
-	public class GraphiteTextClient
+	public interface IGraphiteClient
+	{
+		void Send(GraphiteValue value);
+		void Send(IEnumerable<GraphiteValue> values);
+	}
+
+	public class GraphiteTextClient : IDisposable, IGraphiteClient
 	{
 		static readonly byte[] RecordSeparator = { (byte)'\n' };
 
@@ -31,6 +38,10 @@ namespace StatsSharp
 
 		public void Close() {
 			socket.Close();
+		}
+
+		void IDisposable.Dispose() {
+			socket.Dispose();
 		}
 	}
 }

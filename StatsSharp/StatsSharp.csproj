@@ -40,6 +40,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="NullStatsClient.cs" />
+    <Compile Include="ScopedStatsClient.cs" />
     <Compile Include="StatsAgent.cs" />
     <Compile Include="StatsCollection.cs" />
     <Compile Include="GraphiteTextClient.cs" />
