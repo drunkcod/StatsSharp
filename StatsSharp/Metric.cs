@@ -6,7 +6,7 @@ namespace StatsSharp
 {
 	public struct Metric
 	{
-		static readonly Regex MetricPattern = new Regex(@"(?<name>.+):(?<value>(\+|-)?[0-9]+)\|(?<unit>g|c|ms)");
+		static readonly Regex MetricPattern = new Regex(@"(?<name>.+):(?<value>(\+|-)?[0-9]+)\|(?<unit>g|c|ms)", RegexOptions.Compiled);
 		public readonly string Name;
 		public readonly MetricValue Value;
 
@@ -27,6 +27,11 @@ namespace StatsSharp
 				ParseValue(m.Groups["value"].Value, m.Groups["unit"].Value)
 			);
 			return true;
+		}
+
+		public static string GetName(string path) {
+			var parts = path.Split('.');
+			return parts[parts.Length - 1];
 		}
 
 		public int GetBytes(Encoding encoding, byte[] target, int targetOffset) {

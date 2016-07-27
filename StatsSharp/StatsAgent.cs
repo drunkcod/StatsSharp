@@ -11,10 +11,11 @@ namespace StatsSharp
 {
 	public class StatsAgent
 	{
-		StatsCollectionConfig config = new StatsCollectionConfig();
-		StatsCollection collectedStats;
-		Thread worker;
 		readonly ConcurrentBag<KeyValuePair<string, Func<ulong>>> counters = new ConcurrentBag<KeyValuePair<string, Func<ulong>>>();
+		readonly StatsCollectionConfig config = new StatsCollectionConfig();
+
+		Thread worker;
+		StatsCollection collectedStats;
 
 		public StatsSummary CurrentStats = new StatsSummary(DateTime.UtcNow, new StatsValue[0]);
 		public TimeSpan FlushInterval = TimeSpan.FromSeconds(10);
@@ -22,6 +23,11 @@ namespace StatsSharp
 		public IStatsClient Stats => (IStatsClient)collectedStats ?? NullStatsClient.Instance;
 
 		public event EventHandler<ErrorEventArgs> OnError;
+		public event EventHandler<EventArgs> Flushing; 
+
+		public StatsAgent() {
+			this.collectedStats = new StatsCollection(config);
+		}
 
 		public bool AddPerformanceCounter(string name, string path) => AddPerformanceCounter(name, path, null);
 		public bool AddPerformanceCounter(string name, string path, double? decimalScale) {
@@ -58,9 +64,8 @@ namespace StatsSharp
 		public void Start() {
 			if(worker != null) 
 				throw new InvalidOperationException("Agent already started.");
-
+			BeginCollection();
 			worker = new Thread(() => {
-				collectedStats = new StatsCollection(config);
 				try {
 					Task nextSample;
 					for (var lastFlush = AlignToInterval(DateTime.UtcNow, FlushInterval); ; nextSample.Wait()) {
@@ -72,7 +77,7 @@ namespace StatsSharp
 							continue;
 
 						lastFlush += FlushInterval;
-						CurrentStats = collectedStats.Flush(lastFlush, FlushInterval);
+						Flush(lastFlush);
 					}
 				} catch(Exception ex) {
 					collectedStats = null;
@@ -81,6 +86,16 @@ namespace StatsSharp
 				worker = null;
 			});
 			worker.Start();
+		}
+
+		public void BeginCollection() {
+			if(collectedStats == null)
+			collectedStats = new StatsCollection(config);
+		}
+
+		public void Flush(DateTime lastFlush) {
+			Flushing?.Invoke(this, EventArgs.Empty);
+			CurrentStats = collectedStats.Flush(lastFlush, FlushInterval);
 		}
 
 		void HandleError(Exception ex) {
