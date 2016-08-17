@@ -1,10 +1,11 @@
 ﻿using Cone;
+using System.Text;
 
 namespace StatsSharp.Specs
 {
 	[Describe(typeof(Metric))]
-    public class MetricSpec
-    {
+	public class MetricSpec
+	{
 		[DisplayAs("{0} => ({1}, {2})")
 		,Row("gauge:1|g", "gauge", "1", MetricType.Gauge)
 		,Row("gauge-incr:+2|g", "gauge-incr", "+2", MetricType.GaugeDelta)
@@ -20,5 +21,12 @@ namespace StatsSharp.Specs
 				() => result.Value.Type == type
 			);
 		}
-    }
+
+		public void gauage_delta_encoding() {
+			var bytes = new byte[32];
+
+			Check.With(() => MetricValue.GaugeDelta(-1).GetBytes(Encoding.UTF8, bytes, 0))
+			.That(n => Encoding.UTF8.GetString(bytes, 0, n) == ":-1|g");
+		}
+	}
 }

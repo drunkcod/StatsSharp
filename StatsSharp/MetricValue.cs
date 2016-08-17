@@ -11,11 +11,11 @@ namespace StatsSharp
 
 	public struct MetricValue
 	{
-		static readonly string[] TypeFormat = {
-			":{0}|g",
-			":{0:+0;-#}|g",
-			":{0}|c",
-			":{0}|ms"
+		static readonly string[] TypeSuffix = {
+			"|g",
+			"|g",
+			"|c",
+			"|ms"
 		};
 
 		public readonly ulong Bits;
@@ -32,19 +32,25 @@ namespace StatsSharp
 		public static MetricValue Time(ulong value) => new MetricValue(value, MetricType.Time);
 
 		public override string ToString() {
-			switch(Type) {
-				case MetricType.Gauge:
-				case MetricType.Time: return Bits.ToString();
-				case MetricType.GaugeDelta: return ((int)Bits).ToString("+0;-#");
-				case MetricType.Counter: return ((long)Bits).ToString();
-				default: throw new InvalidOperationException();
-			}
+			if(Type == MetricType.GaugeDelta)
+				return ((int)Bits).ToString("+0;-#");
+			return BoxedBits().ToString();
 		}
 
 		[Pure]
 		public int GetBytes(Encoding encoding, byte[] target, int targetIndex) {
-			var value = string.Format(TypeFormat[(int)Type], Bits);
+			var value = ":" + ToString() + TypeSuffix[(int)Type];
 			return encoding.GetBytes(value, 0, value.Length, target, targetIndex);
+		}
+
+		object BoxedBits() {
+			switch(Type) {
+				case MetricType.Gauge:
+				case MetricType.Time: return Bits;
+				case MetricType.GaugeDelta: return ((int)Bits);
+				case MetricType.Counter: return ((long)Bits);
+				default: throw new InvalidOperationException();
+			}
 		}
 	}
 }

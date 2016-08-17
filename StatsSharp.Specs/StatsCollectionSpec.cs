@@ -20,7 +20,6 @@ namespace StatsSharp.Specs
 		}
 
 		public void Timer_has_upper_lower_count_sum_mean() {
-
 			Stats.Timer("MyTimer", TimeSpan.FromMilliseconds(10));
 			Stats.Timer("MyTimer", TimeSpan.Zero);
 			Stats.Timer("MyTimer", TimeSpan.FromMilliseconds(5));
@@ -36,7 +35,6 @@ namespace StatsSharp.Specs
 		}
 
 		public void Timer_includeds_configured_percentiles() {
-
 			Stats.Percentiles.Add(90);
 
 			foreach(var value in new ulong[] { 450, 120, 553, 994, 334, 844, 675, 496 })
@@ -51,7 +49,6 @@ namespace StatsSharp.Specs
 		}
 
 		public void Counters_are_per_second() {
-
 			Stats.Counter("MyCount");
 			Stats.Counter("MyCount", 4);
 

@@ -30,8 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Cone, Version=2015.5.19.1, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Cone.2015.5.19.1\lib\Net35\Cone.dll</HintPath>
+    <Reference Include="Cone, Version=2016.8.17.1, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Cone.2016.8.17.1\lib\Net35\Cone.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -51,13 +51,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\StatsSharp\StatsSharp.csproj">
       <Project>{30bffc70-0fa9-4134-87f7-883f0c86aeb2}</Project>
       <Name>StatsSharp</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
