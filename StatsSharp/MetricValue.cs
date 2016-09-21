@@ -6,7 +6,12 @@ namespace StatsSharp
 {
 	public enum MetricType : byte
 	{
-		Gauge, GaugeDelta, Counter, Time
+		Gauge = 0,
+		GaugeDelta = 1,
+		Counter = 2,
+		Time = 3,
+		MetricTypeMask = 3,
+		Double = 4,
 	}
 
 	public struct MetricValue
@@ -30,6 +35,7 @@ namespace StatsSharp
 		public static MetricValue GaugeDelta(int delta) => new MetricValue((ulong)delta, MetricType.GaugeDelta);
 		public static MetricValue Counter(long value) => new MetricValue((ulong)value, MetricType.Counter);
 		public static MetricValue Time(ulong value) => new MetricValue(value, MetricType.Time);
+		public static MetricValue Time(double value) => new MetricValue((ulong)BitConverter.DoubleToInt64Bits(value), MetricType.Time | MetricType.Double);
 
 		public override string ToString() {
 			if(Type == MetricType.GaugeDelta)
@@ -37,18 +43,23 @@ namespace StatsSharp
 			return BoxedBits().ToString();
 		}
 
+		public double AsDouble() => (Type & MetricType.Double) == 0 
+			? (double)Bits 
+			: BitConverter.Int64BitsToDouble((long)Bits);
+
 		[Pure]
 		public int GetBytes(Encoding encoding, byte[] target, int targetIndex) {
 			var value = ":" + ToString() + TypeSuffix[(int)Type];
 			return encoding.GetBytes(value, 0, value.Length, target, targetIndex);
 		}
 
-		object BoxedBits() {
-			switch(Type) {
+		public object BoxedBits() {
+			var b = (Type & MetricType.Double) == 0 ? Bits : (ulong)BitConverter.Int64BitsToDouble((long)Bits);
+			switch(Type & MetricType.MetricTypeMask) {
 				case MetricType.Gauge:
-				case MetricType.Time: return Bits;
-				case MetricType.GaugeDelta: return ((int)Bits);
-				case MetricType.Counter: return ((long)Bits);
+				case MetricType.Time: return b;
+				case MetricType.GaugeDelta: return ((int)b);
+				case MetricType.Counter: return ((long)b);
 				default: throw new InvalidOperationException();
 			}
 		}

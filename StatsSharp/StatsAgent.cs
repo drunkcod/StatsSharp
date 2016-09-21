@@ -11,7 +11,8 @@ namespace StatsSharp
 {
 	public class StatsAgent
 	{
-		readonly ConcurrentBag<KeyValuePair<string, Func<ulong>>> counters = new ConcurrentBag<KeyValuePair<string, Func<ulong>>>();
+		readonly ConcurrentBag<KeyValuePair<string, Func<double>>> timers = new ConcurrentBag<KeyValuePair<string, Func<double>>>();
+		readonly ConcurrentBag<KeyValuePair<string, Func<ulong>>> gauges = new ConcurrentBag<KeyValuePair<string, Func<ulong>>>();
 		readonly StatsCollectionConfig config = new StatsCollectionConfig();
 
 		Thread worker;
@@ -23,30 +24,24 @@ namespace StatsSharp
 		public IStatsClient Stats => (IStatsClient)collectedStats ?? NullStatsClient.Instance;
 
 		public event EventHandler<ErrorEventArgs> OnError;
-		public event EventHandler<EventArgs> Flushing; 
+		public event EventHandler<EventArgs> Flushing;
 
-		public StatsAgent() {
-			this.collectedStats = new StatsCollection(config);
-		}
-
-		public bool AddPerformanceCounter(string name, string path) => AddPerformanceCounter(name, path, null);
-		public bool AddPerformanceCounter(string name, string path, double? decimalScale) {
-			var m = Regex.Match(path, @"\\(?<category>.+)\((?<instance>.+)\)\\(?<counter>.+)");
+		public bool AddPerformanceCounter(string name, string path) {
+			var m = Regex.Match(path, @"\\(?<category>.+?)(\((?<instance>.+)\))?\\(?<counter>.+)");
 			return AddPerformanceCounter(name, 
 				m.Groups["category"].Value,
 				m.Groups["counter"].Value,
-				m.Groups["instance"].Value, 
-				decimalScale
-			);
+				m.Groups["instance"].Value);
 		}
 
-		public bool AddPerformanceCounter(string name, string category, string counter, string instance, double? decimalScale = null) {
+		public bool AddPerformanceCounter(string name, string category, string counter, string instance) {
 			try {
 				var pc = new PerformanceCounter(category, counter, instance, true);
-				var scale = decimalScale ?? 1.0;
-				Func<ulong> takeSample = () => (ulong)(pc.NextValue() * scale);
-				AddCounter(name, takeSample, decimalScale);
-
+				if(pc.CounterType != PerformanceCounterType.ElapsedTime) {
+					AddTimer(name, () => pc.NextValue());
+				} else { 
+					AddGauge(name, GetElapsedTimeSampler(pc));
+				}
 				return true;
 
 			} catch (Exception ex) {
@@ -55,11 +50,17 @@ namespace StatsSharp
 			}
 		}
 
-		public void AddCounter(string name, Func<ulong> takeSample, double? decimalScale = null) {
-			counters.Add(new KeyValuePair<string, Func<ulong>>(name, takeSample));
-			if (decimalScale.HasValue)
-				config.Scales[name] = 1.0/decimalScale.Value;
+		static Func<ulong> GetElapsedTimeSampler(PerformanceCounter pc) {
+			var sample = pc.NextSample();
+			var scale = 1.0 / 1000;
+			return () => (ulong)((sample.CounterTimeStamp - sample.RawValue) / (scale * sample.CounterFrequency));
 		}
+
+		public void AddGauge(string name, Func<ulong> takeSample) =>
+			gauges.Add(new KeyValuePair<string, Func<ulong>>(name, takeSample));
+
+		public void AddTimer(string name, Func<double> takeSample) =>
+			timers.Add(new KeyValuePair<string, Func<double>>(name, takeSample));
 
 		public void Start() {
 			if(worker != null) 
@@ -70,9 +71,7 @@ namespace StatsSharp
 					Task nextSample;
 					for (var lastFlush = AlignToInterval(DateTime.UtcNow, FlushInterval); ; nextSample.Wait()) {
 						nextSample = Task.Delay(SampleInterval);
-						foreach(var item in counters)
-							Stats.Timer(item.Key, item.Value());
-
+						Read();
 						if (DateTime.UtcNow - lastFlush < FlushInterval)
 							continue;
 
@@ -86,6 +85,13 @@ namespace StatsSharp
 				worker = null;
 			});
 			worker.Start();
+		}
+
+		public void Read() {
+			foreach(var item in timers)
+				Stats.Send(new Metric(item.Key, MetricValue.Time(item.Value())));
+			foreach(var item in gauges)
+				Stats.Send(new Metric(item.Key, MetricValue.Gauge(item.Value())));
 		}
 
 		public void BeginCollection() {

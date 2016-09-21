@@ -11,7 +11,9 @@ namespace StatsSharp
 		public readonly DateTime Timestamp;
 		
 		public int Count => values.Length;
+
 		public StatsValue this[int index] => values[index];
+		public StatsValue this[string name] => values.Single(x => x.Name == name);
 
 		public StatsSummary(DateTime timestamp, StatsValue[] values) {
 			this.values = values;

@@ -11,8 +11,8 @@ namespace StatsSharp
 	{
 		class BucketCollection
 		{
-			public readonly ConcurrentDictionary<string, ulong> Gauges = new ConcurrentDictionary<string, ulong>();
-			public readonly ConcurrentDictionary<string, ConcurrentBag<ulong>> Timers = new ConcurrentDictionary<string, ConcurrentBag<ulong>>();
+			public readonly ConcurrentDictionary<string, MetricValue> Gauges = new ConcurrentDictionary<string, MetricValue>();
+			public readonly ConcurrentDictionary<string, ConcurrentBag<MetricValue>> Timers = new ConcurrentDictionary<string, ConcurrentBag<MetricValue>>();
 			public readonly ConcurrentDictionary<string, long> Counts = new ConcurrentDictionary<string, long>();
 			readonly StatsCollectionConfig config;
 
@@ -29,7 +29,7 @@ namespace StatsSharp
 			}
 
 			IEnumerable<StatsValue> SummarizeGauges() =>
-				Gauges.Select(item => new StatsValue("stats.gauges." + item.Key, config.GetScale(item.Key) * item.Value));
+				Gauges.Select(item => new StatsValue("stats.gauges." + item.Key, item.Value.AsDouble()));
 
 			IEnumerable<StatsValue> SummarizeCounts(TimeSpan flushInterval) {
 				foreach(var counter in Counts) {
@@ -40,42 +40,43 @@ namespace StatsSharp
 
 			IEnumerable<StatsValue> SummarizeTimers() {
 				foreach(var timer in Timers) {
-					var scale = config.GetScale(timer.Key);
-					var items = timer.Value.Select(x => x * scale).ToList();
+					var items = timer.Value.Select(x => x.AsDouble()).ToList();
 					items.Sort();
 
+					var prefix = "stats.timers." + timer.Key;
 					if(config.Percentiles.Count > 0) {
 						var cumulativeValues = new double[items.Count];
 						cumulativeValues[0] = items[0];
 						for (var i = 1; i < items.Count; ++i)
 							cumulativeValues[i]= items[i] + cumulativeValues[i-1];
 
-						var sumAtThreshold = (double)items[items.Count - 1];
-						var mean = (double)items[0];
-						var maxAtThreshold = (double)items[items.Count - 1];
+						var mean = items[0];
+						var sumAtThreshold = items[items.Count - 1];
+						var maxAtThreshold = items[items.Count - 1];
+						var indexScale = items.Count / 100.0;
 						foreach(var pct in config.Percentiles) {
 							if(items.Count > 1) {
-								var thresholdIndex = ((100.0 - pct) / 100.0) * items.Count;
-								var numInThreshold = Math.Round(items.Count - thresholdIndex);
+								var thresholdIndex = (100.0 - pct) * indexScale;
+								var numInThreshold = (int)Math.Round(items.Count - thresholdIndex);
 
-								maxAtThreshold = items[(int)numInThreshold - 1];
-								sumAtThreshold = cumulativeValues[(int)numInThreshold - 1];
+								maxAtThreshold = items[numInThreshold - 1];
+								sumAtThreshold = cumulativeValues[numInThreshold - 1];
 								mean = sumAtThreshold / numInThreshold;
 							}
 							var suffix = pct.ToString(CultureInfo.InvariantCulture).Replace(".", "_");
-							yield return new StatsValue("stats.timers." + timer.Key + ".mean_"  + suffix, mean);
-							yield return new StatsValue("stats.timers." + timer.Key + ".upper_" + suffix, maxAtThreshold);
-							yield return new StatsValue("stats.timers." + timer.Key + ".sum_" + suffix, sumAtThreshold);
+							yield return new StatsValue(prefix + ".mean_"  + suffix, mean);
+							yield return new StatsValue(prefix + ".upper_" + suffix, maxAtThreshold);
+							yield return new StatsValue(prefix + ".sum_" + suffix, sumAtThreshold);
 						}
 					}
 
 					var sum = items.Sum();
 
-					yield return new StatsValue("stats.timers." + timer.Key + ".upper", items[items.Count - 1]);
-					yield return new StatsValue("stats.timers." + timer.Key + ".lower", items[0]);
-					yield return new StatsValue("stats.timers." + timer.Key + ".count", items.Count);
-					yield return new StatsValue("stats.timers." + timer.Key + ".sum", sum);
-					yield return new StatsValue("stats.timers." + timer.Key + ".mean", sum / items.Count);
+					yield return new StatsValue(prefix + ".upper", items[items.Count - 1]);
+					yield return new StatsValue(prefix + ".lower", items[0]);
+					yield return new StatsValue(prefix + ".count", items.Count);
+					yield return new StatsValue(prefix + ".sum", sum);
+					yield return new StatsValue(prefix + ".mean", sum / items.Count);
 				}
 			} 
 		}
@@ -100,18 +101,18 @@ namespace StatsSharp
 			Interlocked.Exchange(ref buckets, new BucketCollection(config)).Summarize(timestamp, flushInterval);
 
 		void IStatsClient.Send(Metric metric) {
-			switch(metric.Value.Type) {
+			switch(metric.Value.Type & MetricType.MetricTypeMask) {
 				default: throw new NotImplementedException();
 				case MetricType.Gauge:
-					buckets.Gauges[metric.Name] = metric.Value.Bits;
+					buckets.Gauges[metric.Name] = metric.Value;
 					break;
 				case MetricType.Counter:
 					buckets.Counts.AddOrUpdate(metric.Name, _ => 1, (_, x) => x + (long)metric.Value.Bits);
 					break;
 				case MetricType.Time:
 					buckets.Timers
-						.GetOrAdd(metric.Name, _ => new ConcurrentBag<ulong>())
-						.Add(metric.Value.Bits);
+						.GetOrAdd(metric.Name, _ => new ConcurrentBag<MetricValue>())
+						.Add(metric.Value);
 					break;
 			}
 		}
@@ -119,10 +120,6 @@ namespace StatsSharp
 		void IStatsClient.Send(IEnumerable<Metric> metrics) {
 			foreach(var item in metrics)
 				this.Send(item);
-		}
-
-		public void SetScale(string metricName, double scale) {
-			config.Scales[metricName] = scale;
 		}
 	}
 }
