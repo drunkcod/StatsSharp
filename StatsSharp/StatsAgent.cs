@@ -51,9 +51,11 @@ namespace StatsSharp
 		}
 
 		static Func<ulong> GetElapsedTimeSampler(PerformanceCounter pc) {
-			var sample = pc.NextSample();
 			var scale = 1.0 / 1000;
-			return () => (ulong)((sample.CounterTimeStamp - sample.RawValue) / (scale * sample.CounterFrequency));
+			return () => {
+				var sample = pc.NextSample();
+				return (ulong)((sample.CounterTimeStamp - sample.RawValue) / (scale * sample.CounterFrequency));
+			};
 		}
 
 		public void AddGauge(string name, Func<ulong> takeSample) =>
