@@ -14,8 +14,7 @@ namespace StatsSharp
 	public class GraphiteTextClient : IDisposable, IGraphiteClient
 	{
 		static readonly byte[] RecordSeparator = { (byte)'\n' };
-
-		readonly Socket socket;
+		Socket socket;
 
 		GraphiteTextClient(string host, int port) {
 			this.socket = new Socket(SocketType.Stream, ProtocolType.IP);
@@ -26,9 +25,20 @@ namespace StatsSharp
 			return new GraphiteTextClient(host, port);
 		}
 
-		public void Send(GraphiteValue value) {
-			socket.Send(value.GetBytes(Encoding.ASCII));
-			socket.Send(RecordSeparator);
+		public void Send(GraphiteValue value) => Send(value, true);
+
+		void Send(GraphiteValue value, bool retry) {
+			try {
+				socket.Send(value.GetBytes(Encoding.ASCII));
+				socket.Send(RecordSeparator);
+			} catch(SocketException) {
+				if(retry) {
+					var ep = socket.RemoteEndPoint;
+					socket = new Socket(SocketType.Stream, ProtocolType.IP);
+					socket.Connect(ep);
+					Send(value, false);
+				}
+			}
 		}
 
 		public void Send(IEnumerable<GraphiteValue> values) {

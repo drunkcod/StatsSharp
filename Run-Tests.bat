@@ -1,2 +1,2 @@
 @echo off
-Tools\Cone-2015.5.19.1\Bin\Conesole.exe Build\Debug\StatsSharp.Specs\StatsSharp.Specs.dll %*
+packages\Cone.Conesole.2017.8.1.2\tools\net452\Conesole.exe Build\Debug\StatsSharp.Specs\StatsSharp.Specs.dll %*
