@@ -1,0 +1,12 @@
+<Project>
+    <PropertyGroup>
+        <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)\Build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+        <OutputPath>$(MSBuildThisFileDirectory)\Build\$(Configuration)\$(MSBuildProjectName)</OutputPath>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Authors>Torbjörn Gyllebring</Authors>
+        <RepositoryUrl>https://github.com/drunkcod/StatsSharp</RepositoryUrl>
+    </PropertyGroup>
+
+</Project>
