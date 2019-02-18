@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics.Contracts;
 using System.Text;
 
@@ -49,7 +49,7 @@ namespace StatsSharp
 
 		[Pure]
 		public int GetBytes(Encoding encoding, byte[] target, int targetIndex) {
-			var value = ":" + ToString() + TypeSuffix[(int)Type];
+			var value = ":" + ToString() + TypeSuffix[(int)(Type & MetricType.MetricTypeMask)];
 			return encoding.GetBytes(value, 0, value.Length, target, targetIndex);
 		}
 

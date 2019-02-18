@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -14,6 +14,9 @@ namespace StatsSharp
 			this.Name = name;
 			this.Value = value;
 		}
+
+		public static Metric Time(string name, double value) => new Metric(name, MetricValue.Time(value));
+		public static Metric Time(string name, ulong value) => new Metric(name, MetricValue.Time(value));
 
 		public static bool TryParse(string input, out Metric result) {
 			var m = MetricPattern.Match(input);
