@@ -100,8 +100,10 @@ namespace StatsSharp
 		public StatsSummary Flush(DateTime timestamp, TimeSpan flushInterval) => 
 			Interlocked.Exchange(ref buckets, new BucketCollection(config)).Summarize(timestamp, flushInterval);
 
-		void IStatsClient.Send(Metric metric) {
-			switch(metric.Value.Type & MetricType.MetricTypeMask) {
+		void IStatsClient.Send(Metric metric) => SendCore(metric);
+
+		void SendCore(Metric metric) {
+			switch (metric.Value.Type & MetricType.MetricTypeMask) {
 				default: throw new NotImplementedException();
 				case MetricType.Gauge:
 					buckets.Gauges[metric.Name] = metric.Value;
@@ -119,7 +121,7 @@ namespace StatsSharp
 
 		void IStatsClient.Send(IEnumerable<Metric> metrics) {
 			foreach(var item in metrics)
-				this.Send(item);
+				SendCore(item);
 		}
 	}
 }
