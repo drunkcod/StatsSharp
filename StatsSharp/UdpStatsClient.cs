@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -10,7 +10,7 @@ namespace StatsSharp
 {
 	public class UdpStatsClient : IStatsClient
 	{
-		public static readonly Encoding Encoding = Encoding.ASCII;
+		public static readonly Encoding Encoding = Encoding.UTF8;
 
 		const int DatagramSize = 512;
 		const byte RecordSeparator = (byte)'\n';
