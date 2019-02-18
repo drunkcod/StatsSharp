@@ -5,13 +5,13 @@ namespace StatsSharp
 		readonly string prefix;
 
 		public StatsPrefix(string prefix) {
-			this.prefix = prefix.EndsWith(".") 
-				? prefix
-				: prefix + '.'; 
+			this.prefix = prefix.EndsWith(".")
+			? prefix
+			: prefix + '.'; 
 		}
 
-		public override string ToString() { return prefix.TrimEnd('.'); }
+		public override string ToString() => prefix.TrimEnd('.');
 
-		public static string operator+(StatsPrefix lhs, string rhs) {return lhs.prefix + rhs; }
+		public static string operator+(StatsPrefix lhs, string rhs) => lhs.prefix + rhs;
 	}
 }

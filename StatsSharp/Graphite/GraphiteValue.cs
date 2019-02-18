@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Text;
 
-namespace StatsSharp
+namespace StatsSharp.Graphite
 {
 	public struct GraphiteValue
 	{

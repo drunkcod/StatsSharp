@@ -17,11 +17,11 @@ namespace StatsSharp
 		public IStatsClient Stats => collectedStats;
 
 		public event EventHandler<ErrorEventArgs> OnError;
+		public event Action<IStatsClient> Flushing;
 		public event Action<StatsSummary> Flushed;
 		public event Action<IStatsClient> Sample;
 
-		public void Start()
-		{
+		public void Start() {
 			if (worker != null && worker.IsAlive)
 				throw new InvalidOperationException("Already started.");
 			if (worker == null)
@@ -29,56 +29,47 @@ namespace StatsSharp
 			worker.Start(this);
 		}
 
-		static void RunWorker(object obj)
-		{
+		static void RunWorker(object obj) {
 			var self = (SampleAgent)obj;
-			try
-			{
+			try {
 				var sampleTime = new Stopwatch();
 				var nextFlush = AlignToInterval(DateTime.UtcNow + self.FlushInterval, self.FlushInterval);
-				for(; self.worker != null; AwaitNextSample(self.SampleInterval, sampleTime.Elapsed))
-				{
+				while(self.worker != null) {
 					sampleTime.Restart();
-					var doSample = self.Sample;
-					if (doSample != null)
-						doSample(self.Stats);
+					self.Sample?.Invoke(self.Stats);
 
-					if (DateTime.UtcNow < nextFlush)
-						continue;
+					if (DateTime.UtcNow >= nextFlush) {
+						self.Flush(nextFlush);
+						nextFlush += self.FlushInterval;
+					}
 
-					self.Flush(nextFlush);
-					nextFlush += self.FlushInterval;
+					AwaitNextSample(self.SampleInterval, sampleTime.Elapsed);
 				}
 			}
-			catch (Exception ex)
-			{
+			catch (Exception ex) {
 				self.HandleError(ex);
 			}
 		}
 
-		static void AwaitNextSample(TimeSpan sampleInterval, TimeSpan sampleTime)
-		{
+		static void AwaitNextSample(TimeSpan sampleInterval, TimeSpan sampleTime) {
 			var delay = sampleInterval - sampleTime;
 			if (delay <= TimeSpan.Zero)
 				return;
 			Thread.Sleep(delay);
 		}
 
-		public void Stop()
-		{
+		public void Stop() {
 			var x = worker;
 			worker = null;
 			x.Join();
 		}
 
-		public void Flush(DateTime lastFlush)
-		{
+		public void Flush(DateTime lastFlush) {
 			CurrentStats = collectedStats.Flush(lastFlush, FlushInterval);
 			Flushed?.Invoke(CurrentStats);
 		}
 
-		void HandleError(Exception ex)
-		{
+		internal void HandleError(Exception ex) {
 			var err = OnError;
 			if (err == null)
 				return;

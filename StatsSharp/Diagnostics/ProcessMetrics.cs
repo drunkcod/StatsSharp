@@ -6,22 +6,20 @@ using System.Management;
 
 namespace StatsSharp.Diagnostics
 {
-	class ProcessMetrics : IDisposable
+	public class ProcessMetrics : IDisposable
 	{
 		class CounterValue : IDisposable
 		{
 			PerformanceCounter counter;
 			long rawValue;
 
-			public CounterValue(PerformanceCounter counter)
-			{
+			public CounterValue(PerformanceCounter counter) {
 				this.counter = counter;
 			}
 
 			public void Dispose() => counter.Dispose();
 
-			public void Update()
-			{
+			public void Update() {
 				rawValue = ReadNext();
 			}
 
@@ -29,8 +27,7 @@ namespace StatsSharp.Diagnostics
 
 			public object Value {
 				get {
-					switch (counter.CounterType)
-					{
+					switch (counter.CounterType) {
 						default: return BitConverter.Int64BitsToDouble(rawValue);
 						case PerformanceCounterType.NumberOfItems64: return rawValue;
 						case PerformanceCounterType.ElapsedTime: return TimeSpan.FromTicks(rawValue);
@@ -38,24 +35,20 @@ namespace StatsSharp.Diagnostics
 				}
 			}
 
-			long ReadNext()
-			{
-				switch (counter.CounterType)
-				{
+			long ReadNext() {
+				switch (counter.CounterType) {
 					default: return BitConverter.DoubleToInt64Bits(counter.NextValue());
 					case PerformanceCounterType.NumberOfItems64: return counter.NextSample().RawValue;
 					case PerformanceCounterType.ElapsedTime: return GetTicks(counter.NextSample());
 				}
 			}
 
-			public void Rebind(PerformanceCounter newCounter)
-			{
+			public void Rebind(PerformanceCounter newCounter) {
 				counter.Dispose();
 				counter = newCounter;
 			}
 
-			static long GetTicks(CounterSample sample)
-			{
+			static long GetTicks(CounterSample sample) {
 				var ticks = sample.CounterTimeStamp - sample.RawValue;
 				if (sample.CounterFrequency == TimeSpan.TicksPerSecond)
 					return ticks;
@@ -67,8 +60,7 @@ namespace StatsSharp.Diagnostics
 		readonly int? pid;
 		PerformanceCounter idProcess;
 
-		ProcessMetrics(int? pid, PerformanceCounter idProcess)
-		{
+		ProcessMetrics(int? pid, PerformanceCounter idProcess) {
 			this.pid = pid;
 			this.idProcess = idProcess;
 		}
@@ -84,15 +76,11 @@ namespace StatsSharp.Diagnostics
 			}
 		}
 
-		public void Update()
-		{
-			if (pid.HasValue && idProcess.NextSample().RawValue != pid)
-			{
+		public void Update() {
+			if (pid.HasValue && idProcess.NextSample().RawValue != pid) {
 				idProcess = FindByPid(pid.Value);
 				foreach (var item in counters.Values)
-				{
 					item.Rebind(CounterByName(item.CounterName));
-				}
 			}
 			foreach (var item in counters.Values)
 				item.Update();
@@ -112,8 +100,7 @@ namespace StatsSharp.Diagnostics
 		public static ProcessMetrics Create(string name, string machine) =>
 			new ProcessMetrics(null, new PerformanceCounter("Process", "ID Process", name, machine));
 
-		static PerformanceCounter FindByPid(int pid)
-		{
+		static PerformanceCounter FindByPid(int pid) {
 			string processName;
 			using (var wmi = new ManagementObjectSearcher($"select * from Win32_PerfRawData_PerfProc_Process where IDProcess = {pid}"))
 			{
@@ -131,15 +118,13 @@ namespace StatsSharp.Diagnostics
 			public readonly Type Type;
 			public readonly object Value;
 
-			public HostInfoItem(Type type, object value)
-			{
+			public HostInfoItem(Type type, object value) {
 				this.Type = type;
 				this.Value = value;
 			}
 		}
 
-		public HostInfoItem GetHostInfo(string key)
-		{
+		public HostInfoItem GetHostInfo(string key) {
 			using (var wmi = new ManagementObjectSearcher($@"\\{idProcess.MachineName}\root\cimv2", $"select {key} from Win32_ComputerSystem"))
 			{
 				wmi.Options.Rewindable = false;
@@ -150,10 +135,8 @@ namespace StatsSharp.Diagnostics
 			}
 		}
 
-		static Type ToType(CimType type)
-		{
-			switch (type)
-			{
+		static Type ToType(CimType type) {
+			switch (type) {
 				default: throw new NotImplementedException($"{type}");
 				case CimType.Boolean: return typeof(bool);
 				case CimType.SInt8: return typeof(sbyte);
@@ -169,8 +152,7 @@ namespace StatsSharp.Diagnostics
 			}
 		}
 
-		public void Dispose()
-		{
+		public void Dispose() {
 			foreach (var item in counters.Values)
 				item.Dispose();
 			counters.Clear();

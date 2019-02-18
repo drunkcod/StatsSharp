@@ -14,7 +14,7 @@ namespace StatsSharp
 	{
 		static readonly MetricValue CountOfOne = MetricValue.Counter(1); 
 
-		public static IStatsClient Scope(this IStatsClient self, string prefix) => new ScopedStatsClient(self, prefix);
+		public static IStatsClient Scope(this IStatsClient self, string prefix) => new ScopedStatsClient(self, new StatsPrefix(prefix));
 
 		public static void Send(this IStatsClient stats, string name, MetricValue value) => stats.Send(new Metric(name, value));
 		public static void Send(this IStatsClient stats, params Metric[] metrics) => stats.Send(metrics);

@@ -6,11 +6,11 @@ namespace StatsSharp
 	public class ScopedStatsClient : IStatsClient
 	{
 		readonly IStatsClient inner;
-		readonly string prefix;
+		readonly StatsPrefix prefix;
 
-		public ScopedStatsClient(IStatsClient inner, string prefix) {
+		public ScopedStatsClient(IStatsClient inner, StatsPrefix prefix) {
 			this.inner = inner;
-			this.prefix = prefix.EndsWith(".") ? prefix : prefix + '.';
+			this.prefix = prefix;
 		}
 
 		public void Send(Metric metric) => inner.Send(new Metric(prefix + metric.Name, metric.Value));

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using Cone;
@@ -35,25 +35,6 @@ namespace StatsSharp.Specs
 			Agent.AddPerformanceCounter("PerfC", @"\Bougs(_Total)\Metric");
 
 			Check.That(() => onError.HasBeenCalled);
-		}
-
-		public void can_add_metric_before_flush() {
-			Agent.Flushing += (sender, _) =>
-				((StatsAgent)sender).Stats.Send(new Metric("MyLastMinuteStat", MetricValue.Gauge(1)));
-
-			Agent.BeginCollection();
-			Agent.Flush(DateTime.UtcNow);
-			Check.That(() => Agent.CurrentStats.Any(x => Metric.GetName(x.Name) == "MyLastMinuteStat"));
-		}
-
-		public void handles_ElapsedTime_performance_counter() {
-			Assume.That(() => Agent.AddPerformanceCounter("UpTime", @"\System\System Up Time"));
-			Agent.BeginCollection();
-			var uptime = TimeSpan.FromMilliseconds(Environment.TickCount);
-			Agent.Read();
-			Agent.Flush(DateTime.UtcNow);
-
-			Check.That(() => TimeSpan.FromMilliseconds(Agent.CurrentStats["stats.gauges.UpTime"].Value) - uptime < TimeSpan.FromSeconds(1));
 		}
 	}
 }

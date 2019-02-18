@@ -1,11 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace StatsSharp
 {
@@ -13,18 +11,36 @@ namespace StatsSharp
 	{
 		readonly ConcurrentBag<KeyValuePair<string, Func<double>>> timers = new ConcurrentBag<KeyValuePair<string, Func<double>>>();
 		readonly ConcurrentBag<KeyValuePair<string, Func<ulong>>> gauges = new ConcurrentBag<KeyValuePair<string, Func<ulong>>>();
-		readonly StatsCollectionConfig config = new StatsCollectionConfig();
-
-		Thread worker;
-		StatsCollection collectedStats;
+		readonly SampleAgent sampler = new SampleAgent();
 
 		public StatsSummary CurrentStats = new StatsSummary(DateTime.UtcNow, new StatsValue[0]);
-		public TimeSpan FlushInterval = TimeSpan.FromSeconds(10);
-		public TimeSpan SampleInterval = TimeSpan.FromSeconds(1);
-		public IStatsClient Stats => (IStatsClient)collectedStats ?? NullStatsClient.Instance;
+		
+		public TimeSpan FlushInterval {
+			get => sampler.FlushInterval;
+			set => sampler.FlushInterval = value;
+		}
+		
+		public TimeSpan SampleInterval {
+			get => sampler.SampleInterval;
+			set => sampler.SampleInterval = value;
+		}
+		
+		public IStatsClient Stats => sampler.Stats;
 
-		public event EventHandler<ErrorEventArgs> OnError;
-		public event EventHandler<EventArgs> Flushing;
+		public event EventHandler<ErrorEventArgs> OnError { 
+			add => sampler.OnError += value;
+			remove => sampler.OnError -= value;
+		}
+
+		public event EventHandler<EventArgs> Flushing {
+			add => sampler.Flushing += _ => value(this, EventArgs.Empty);
+			remove => sampler.Flushing -= _ => value(this, EventArgs.Empty);
+		}
+
+		public StatsAgent() {
+			sampler.Sample += _ => Read();
+			sampler.Flushed += summary => CurrentStats = summary;
+		}
 
 		public bool AddPerformanceCounter(string name, string path) {
 			var m = Regex.Match(path, @"\\(?<category>.+?)(\((?<instance>.+)\))?\\(?<counter>.+)");
@@ -45,7 +61,7 @@ namespace StatsSharp
 				return true;
 
 			} catch (Exception ex) {
-				HandleError(ex);
+				sampler.HandleError(ex);
 				return false;
 			}
 		}
@@ -64,30 +80,7 @@ namespace StatsSharp
 		public void AddTimer(string name, Func<double> takeSample) =>
 			timers.Add(new KeyValuePair<string, Func<double>>(name, takeSample));
 
-		public void Start() {
-			if(worker != null) 
-				throw new InvalidOperationException("Agent already started.");
-			BeginCollection();
-			worker = new Thread(() => {
-				try {
-					Task nextSample;
-					for (var lastFlush = AlignToInterval(DateTime.UtcNow, FlushInterval); ; nextSample.Wait()) {
-						nextSample = Task.Delay(SampleInterval);
-						Read();
-						if (DateTime.UtcNow - lastFlush < FlushInterval)
-							continue;
-
-						lastFlush += FlushInterval;
-						Flush(lastFlush);
-					}
-				} catch(Exception ex) {
-					collectedStats = null;
-					HandleError(ex);
-				}
-				worker = null;
-			});
-			worker.Start();
-		}
+		public void Start() => sampler.Start();
 
 		public void Read() {
 			foreach(var item in timers)
@@ -95,27 +88,5 @@ namespace StatsSharp
 			foreach(var item in gauges)
 				Stats.Send(new Metric(item.Key, MetricValue.Gauge(item.Value())));
 		}
-
-		public void BeginCollection() {
-			if(collectedStats == null)
-			collectedStats = new StatsCollection(config);
-		}
-
-		public void Flush(DateTime lastFlush) {
-			Flushing?.Invoke(this, EventArgs.Empty);
-			CurrentStats = collectedStats.Flush(lastFlush, FlushInterval);
-		}
-
-		void HandleError(Exception ex) {
-			var err = OnError;
-			if(err == null)
-				return;
-			var e = new ErrorEventArgs(ex);
-			foreach(EventHandler<ErrorEventArgs> handler in err.GetInvocationList())
-				try { handler(this, e); } catch { }
-		}
-
-		static DateTime AlignToInterval(DateTime now, TimeSpan interval) =>
-			now.AddTicks(-now.TimeOfDay.Ticks % interval.Ticks);
 	}
 }

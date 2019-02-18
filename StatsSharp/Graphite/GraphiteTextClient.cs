@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 
-namespace StatsSharp
+namespace StatsSharp.Graphite
 {
 	public interface IGraphiteClient
 	{
