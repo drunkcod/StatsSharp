@@ -65,6 +65,7 @@ namespace StatsSharp
 		}
 
 		public void Flush(DateTime lastFlush) {
+			Flushing?.Invoke(collectedStats);
 			CurrentStats = collectedStats.Flush(lastFlush, FlushInterval);
 			Flushed?.Invoke(CurrentStats);
 		}
