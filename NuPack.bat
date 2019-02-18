@@ -1,1 +1,1 @@
-Tools\NuGet pack StatsSharp\StatsSharp.csproj -Build -Properties Configuration=Release 
+dotnet pack StatsSharp\StatsSharp.csproj -c Release 
