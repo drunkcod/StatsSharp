@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using StatsSharp.Graphite;
 
 namespace StatsSharp
 {
@@ -22,5 +23,9 @@ namespace StatsSharp
 
 		public IEnumerator<StatsValue> GetEnumerator() => values.AsEnumerable().GetEnumerator();
 		IEnumerator IEnumerable.GetEnumerator() => values.GetEnumerator();
+
+		public GraphiteValue[] AsGraphiteValues() => Array.ConvertAll(values, AsGraphiteValue);
+		
+		GraphiteValue AsGraphiteValue(StatsValue value) => new GraphiteValue(value.Name, value.Value, Timestamp);
 	}
 }

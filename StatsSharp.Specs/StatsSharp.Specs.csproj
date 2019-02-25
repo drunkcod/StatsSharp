@@ -45,7 +45,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ScopedStatsClientSpec.cs" />
-    <Compile Include="StatsAgentSpec.cs" />
     <Compile Include="StatsCollectionSpec.cs" />
     <Compile Include="MetricSpec.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

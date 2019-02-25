@@ -8,38 +8,26 @@ namespace StatsSharp.Diagnostics
 {
 	public class ProcessMetrics : IDisposable
 	{
-		class CounterValue : IDisposable
+		class ProcessCounter : IDisposable
 		{
+			readonly string key;
 			PerformanceCounter counter;
-			long rawValue;
 
-			public CounterValue(PerformanceCounter counter) {
+			public ProcessCounter(string key, PerformanceCounter counter) {
+				this.key = key;
 				this.counter = counter;
-			}
-
-			public void Dispose() => counter.Dispose();
-
-			public void Update() {
-				rawValue = ReadNext();
 			}
 
 			public string CounterName => counter.CounterName;
 
-			public object Value {
-				get {
-					switch (counter.CounterType) {
-						default: return BitConverter.Int64BitsToDouble(rawValue);
-						case PerformanceCounterType.NumberOfItems64: return rawValue;
-						case PerformanceCounterType.ElapsedTime: return TimeSpan.FromTicks(rawValue);
-					}
-				}
-			}
+			public void Dispose() => counter.Dispose();
 
-			long ReadNext() {
+			public Metric Read() => new Metric(key, ReadNext());
+
+			MetricValue ReadNext() {
 				switch (counter.CounterType) {
-					default: return BitConverter.DoubleToInt64Bits(counter.NextValue());
-					case PerformanceCounterType.NumberOfItems64: return counter.NextSample().RawValue;
-					case PerformanceCounterType.ElapsedTime: return GetTicks(counter.NextSample());
+					default: return MetricValue.Time(counter.NextValue());
+					case PerformanceCounterType.NumberOfItems64: return MetricValue.Time(counter.NextSample().RawValue);
 				}
 			}
 
@@ -56,7 +44,7 @@ namespace StatsSharp.Diagnostics
 			}
 		}
 
-		readonly Dictionary<string, CounterValue> counters = new Dictionary<string, CounterValue>();
+		readonly Dictionary<string, ProcessCounter> counters = new Dictionary<string, ProcessCounter>();
 		readonly int? pid;
 		PerformanceCounter idProcess;
 
@@ -65,25 +53,21 @@ namespace StatsSharp.Diagnostics
 			this.idProcess = idProcess;
 		}
 
-		public object this[string name] {
-			get {
-				if (counters.TryGetValue(name, out var found))
-					return found.Value;
-				var p = new CounterValue(CounterByName(name));
-				p.Update();
-				counters.Add(name, p);
-				return p.Value;
-			}
+		public bool Add(string metricName, string counterName) {
+			if (counters.TryGetValue(metricName, out var found))
+				return false;
+			var p = new ProcessCounter(metricName, CounterByName(counterName));
+			counters.Add(metricName, p);
+			return true;
 		}
 
-		public void Update() {
+		public void Read(Action<IEnumerable<Metric>> send) {
 			if (pid.HasValue && idProcess.NextSample().RawValue != pid) {
 				idProcess = FindByPid(pid.Value);
 				foreach (var item in counters.Values)
 					item.Rebind(CounterByName(item.CounterName));
 			}
-			foreach (var item in counters.Values)
-				item.Update();
+			send(counters.Values.Select(x => x.Read()));
 		}
 
 		PerformanceCounter CounterByName(string name) => IsLocalCounter

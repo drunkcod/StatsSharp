@@ -1,4 +1,4 @@
-﻿using Cone;
+using Cone;
 using System.Text;
 
 namespace StatsSharp.Specs
@@ -20,13 +20,6 @@ namespace StatsSharp.Specs
 				() => result.Value.ToString() == value,
 				() => result.Value.Type == type
 			);
-		}
-
-		public void gauage_delta_encoding() {
-			var bytes = new byte[32];
-
-			Check.With(() => MetricValue.GaugeDelta(-1).GetBytes(Encoding.UTF8, bytes, 0))
-			.That(n => Encoding.UTF8.GetString(bytes, 0, n) == ":-1|g");
 		}
 
 		public void standard_values_are_ulongs() =>

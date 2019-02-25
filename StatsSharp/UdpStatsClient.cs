@@ -41,13 +41,18 @@ namespace StatsSharp
 			var datagram = new Dgram(DatagramSize);
 			foreach(var item in metrics) {
 				var start = datagram.Position;
-				if(!datagram.TryAppend(item, Encoding) || datagram.Capacity < 1) {
+				if(!datagram.TryAppend(item, Encoding)) {
 					datagram.SendTo(socket, target, start);
 					datagram.Clear();
 					if(!datagram.TryAppend(item, Encoding))
 						throw new ArgumentException();
 				}
-				datagram.Append(RecordSeparator);
+				if(datagram.Capacity > 0)
+					datagram.Append(RecordSeparator);
+				else {
+					datagram.SendTo(socket, target);
+					datagram.Clear();
+				}
 			}
 			datagram.SendTo(socket, target);
 		}

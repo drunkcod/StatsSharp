@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -38,8 +39,12 @@ namespace StatsSharp
 		}
 
 		public int GetBytes(Encoding encoding, byte[] target, int targetOffset) {
-			var n = encoding.GetBytes(Name, 0, Name.Length, target, targetOffset);
-			return n + Value.GetBytes(encoding, target, targetOffset + n);
+			var v = new MemoryStream(target, targetOffset, target.Length - targetOffset);
+			using(var w = new StreamWriter(v, encoding, 64)) { 
+				w.Write(Name);
+				Value.WriteTo(w);
+			}
+			return (int)v.Position;
 		}
 
 		static MetricValue ParseValue(string value, string type) {

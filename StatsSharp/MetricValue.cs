@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Text;
 
 namespace StatsSharp
@@ -28,19 +29,25 @@ namespace StatsSharp
 		public static MetricValue Time(double value) => new MetricValue((ulong)BitConverter.DoubleToInt64Bits(value), MetricType.Time | MetricType.Double);
 
 		public override string ToString() {
-			if(Type == MetricType.GaugeDelta)
-				return ((int)Bits).ToString("+0;-#");
-			return BoxedBits().ToString();
+			var r = new StringWriter();
+			WriteValueTo(r);
+			return r.ToString();
 		}
 
 		public double AsDouble() => (Type & MetricType.Double) == 0 
 			? (double)Bits 
 			: BitConverter.Int64BitsToDouble((long)Bits);
 
-		[Pure]
-		public int GetBytes(Encoding encoding, byte[] target, int targetIndex) {
-			var value = ":" + ToString() + TypeSuffix[(int)(Type & MetricType.MetricTypeMask)];
-			return encoding.GetBytes(value, 0, value.Length, target, targetIndex);
+		public void WriteTo(TextWriter output) {
+			output.Write(':');
+			WriteValueTo(output);
+			output.Write(TypeSuffix[(int)(Type & MetricType.MetricTypeMask)]);
+		}
+
+		void WriteValueTo(TextWriter output) {
+			if (Type == MetricType.GaugeDelta)
+				output.Write("{0:+0;-#}", (int)Bits);
+			else output.Write(BoxedBits());
 		}
 
 		public object BoxedBits() {

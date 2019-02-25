@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -22,21 +22,19 @@ namespace StatsSharp.Net
 			try {
 				position += metric.GetBytes(encoding, bytes, position);
 				return true;
-			} catch(ArgumentException) {
+			} catch {
 				return false;
 			}
 		}
 
-		public void Append(byte b) { bytes[position++] = b; }
+		public void Append(byte b) => bytes[position++] = b;
 
-		public void SendTo(Socket socket, EndPoint target) {
+		public void SendTo(Socket socket, EndPoint target) => 
 			SendTo(socket, target, position);
-		}
 
-		public void SendTo(Socket socket, EndPoint target, int count) {
+		public void SendTo(Socket socket, EndPoint target, int count) =>
 			socket.SendTo(bytes, 0, count, SocketFlags.None, target);
-		}
 
-		public void Clear() { position = 0; }
+		public void Clear() => position = 0;
 	}
 }

@@ -80,6 +80,6 @@ namespace StatsSharp
 		}
 
 		static DateTime AlignToInterval(DateTime now, TimeSpan interval) =>
-			now.AddTicks(-now.TimeOfDay.Ticks % interval.Ticks);
+			now.AddTicks(-(now.TimeOfDay.Ticks % interval.Ticks));
 	}
 }
