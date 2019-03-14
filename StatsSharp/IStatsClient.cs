@@ -39,12 +39,12 @@ namespace StatsSharp
 			if(value < 0) {
 				stats.Send(
 					new Metric(name, MetricValue.Gauge(0)), 
-					new Metric(name, MetricValue.GaugeDelta(value)));
+					new Metric(name, MetricValue.Delta(value)));
 			} else {
-				stats.Send(new Metric(name, MetricValue.Gauge((ulong)value)));
+				stats.Send(new Metric(name, MetricValue.Gauge((uint)value)));
 			}
 		}
 
-		public static void GaugeDelta(this IStatsClient stats, string name, int value) => stats.Send(new Metric(name, MetricValue.GaugeDelta(value)));
+		public static void GaugeDelta(this IStatsClient stats, string name, int value) => stats.Send(new Metric(name, MetricValue.Delta(value)));
 	}
 }

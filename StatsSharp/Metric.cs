@@ -16,8 +16,8 @@ namespace StatsSharp
 			this.Value = value;
 		}
 
-		public static Metric Time(string name, double value) => new Metric(name, MetricValue.Time(value));
-		public static Metric Time(string name, ulong value) => new Metric(name, MetricValue.Time(value));
+		public static Metric Time(string name, float value) => new Metric(name, MetricValue.Time(value));
+		public static Metric Time(string name, uint value) => new Metric(name, MetricValue.Time(value));
 
 		public static bool TryParse(string input, out Metric result) {
 			var m = MetricPattern.Match(input);
@@ -38,23 +38,21 @@ namespace StatsSharp
 			return parts[parts.Length - 1];
 		}
 
-		public int GetBytes(Encoding encoding, byte[] target, int targetOffset) {
-			var v = new MemoryStream(target, targetOffset, target.Length - targetOffset);
-			using(var w = new StreamWriter(v, encoding, 64)) { 
+		public void WriteTo(MemoryStream ms, Encoding encoding) {
+			using (var w = new StreamWriter(ms, encoding, 64, leaveOpen: true)) {
 				w.Write(Name);
 				Value.WriteTo(w);
 			}
-			return (int)v.Position;
 		}
 
 		static MetricValue ParseValue(string value, string type) {
 			switch(type) {
 				case "g":
 					if(value[0] == '+' || value[0] == '-')
-						return MetricValue.GaugeDelta(int.Parse(value));
-					return MetricValue.Gauge(ulong.Parse(value));
-				case "c": return MetricValue.Counter(long.Parse(value));
-				case "ms": return MetricValue.Time(ulong.Parse(value));
+						return MetricValue.Delta(int.Parse(value));
+					return MetricValue.Gauge(uint.Parse(value));
+				case "c": return MetricValue.Counter(int.Parse(value));
+				case "ms": return MetricValue.Time(uint.Parse(value));
 				default: throw new NotSupportedException($"Invalid metrics type '{type}'");
 			}
 		}

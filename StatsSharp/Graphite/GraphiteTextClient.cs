@@ -44,13 +44,13 @@ namespace StatsSharp.Graphite
 			socket.Dispose();
 
 		public void Send(Metric metric) =>
-			Send(new GraphiteValue(metric.Name, metric.Value.AsDouble(), DateTime.UtcNow));
+			Send(new GraphiteValue(metric.Name, metric.Value.AsFloat(), DateTime.UtcNow));
 
 		public void Send(IEnumerable<Metric> metrics)
 		{
 			var now = DateTime.UtcNow;
 			foreach(var item in metrics)
-				Send(new GraphiteValue(item.Name, item.Value.AsDouble(), now));
+				Send(new GraphiteValue(item.Name, item.Value.AsFloat(), now));
 		}
 	}
 }

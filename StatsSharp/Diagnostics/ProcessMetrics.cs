@@ -1,8 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Management;
 
 namespace StatsSharp.Diagnostics
 {
@@ -85,56 +85,13 @@ namespace StatsSharp.Diagnostics
 			new ProcessMetrics(null, new PerformanceCounter("Process", "ID Process", name, machine));
 
 		static PerformanceCounter FindByPid(int pid) {
-			string processName;
-			using (var wmi = new ManagementObjectSearcher($"select * from Win32_PerfRawData_PerfProc_Process where IDProcess = {pid}"))
-			{
-				wmi.Options.Rewindable = false;
-				wmi.Options.ReturnImmediately = true;
-				processName = (string)wmi.Get().Cast<ManagementObject>().Single().Properties["Name"].Value;
-			}
-			return new PerformanceCounter("Process", "ID Process", processName, readOnly: true);
+			var processCounters = new PerformanceCounterCategory("Process");
+			var values = processCounters.ReadCategory();
+
+			return new PerformanceCounter("Process", "ID Process", values["ID Process"].Values.Cast<InstanceData>().Single(x => x.RawValue == pid).InstanceName , readOnly: true);
 		}
 
 		public string HostName => idProcess.MachineName == "." ? Environment.MachineName : idProcess.MachineName;
-
-		public struct HostInfoItem
-		{
-			public readonly Type Type;
-			public readonly object Value;
-
-			public HostInfoItem(Type type, object value) {
-				this.Type = type;
-				this.Value = value;
-			}
-		}
-
-		public HostInfoItem GetHostInfo(string key) {
-			using (var wmi = new ManagementObjectSearcher($@"\\{idProcess.MachineName}\root\cimv2", $"select {key} from Win32_ComputerSystem"))
-			{
-				wmi.Options.Rewindable = false;
-				wmi.Options.ReturnImmediately = true;
-				var item = wmi.Get().Cast<ManagementObject>().Single().Properties.Cast<PropertyData>().Single();
-				var type = ToType(item.Type);
-				return new HostInfoItem(!item.IsArray ? type : type.MakeArrayType(), item.Value);
-			}
-		}
-
-		static Type ToType(CimType type) {
-			switch (type) {
-				default: throw new NotImplementedException($"{type}");
-				case CimType.Boolean: return typeof(bool);
-				case CimType.SInt8: return typeof(sbyte);
-				case CimType.UInt8: return typeof(byte);
-				case CimType.DateTime: return typeof(DateTime);
-				case CimType.SInt16: return typeof(short);
-				case CimType.UInt16: return typeof(ushort);
-				case CimType.SInt32: return typeof(int);
-				case CimType.UInt32: return typeof(uint);
-				case CimType.SInt64: return typeof(long);
-				case CimType.UInt64: return typeof(ulong);
-				case CimType.String: return typeof(string);
-			}
-		}
 
 		public void Dispose() {
 			foreach (var item in counters.Values)

@@ -1,22 +1,24 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using StatsSharp.Net;
 
 namespace StatsSharp
 {
 	public class UdpStatsClient : IStatsClient
 	{
-		public static readonly Encoding Encoding = Encoding.UTF8;
+		const string MetricTooLong = "Metric length exceeds datagram size.";
+		public static readonly Encoding Encoding = new UTF8Encoding(false);
 
 		const int DatagramSize = 512;
 		const byte RecordSeparator = (byte)'\n';
 
 		readonly Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 		readonly IPEndPoint target;
+		readonly MemoryStream bytes = new MemoryStream(DatagramSize);
 
 		public UdpStatsClient(IPEndPoint target) {
 			this.target = target;
@@ -31,30 +33,45 @@ namespace StatsSharp
 		}
 
 		public void Send(Metric metric) {
-			var datagram = new Dgram(DatagramSize);
-			if(!datagram.TryAppend(metric, Encoding))
-				throw new ArgumentException();
-			datagram.SendTo(socket, target);
+			bytes.Position = 0;
+			metric.WriteTo(bytes, Encoding);
+			if(bytes.Position > DatagramSize)
+				throw new ArgumentException(MetricTooLong);
+			Send(0, (int)bytes.Position);
 		}
 
 		public void Send(IEnumerable<Metric> metrics) {
-			var datagram = new Dgram(DatagramSize);
+			var start = bytes.Position = 0;
+			var end = 0;
 			foreach(var item in metrics) {
-				var start = datagram.Position;
-				if(!datagram.TryAppend(item, Encoding)) {
-					datagram.SendTo(socket, target, start);
-					datagram.Clear();
-					if(!datagram.TryAppend(item, Encoding))
-						throw new ArgumentException();
+				item.WriteTo(bytes, Encoding);
+				if (bytes.Position > DatagramSize) {
+					Send(0, end);
+					var len = (int)(bytes.Position - start);
+					if (len > DatagramSize)
+						throw new ArgumentException(MetricTooLong);
+					else {
+						Send((int)start, len);
+						start = bytes.Position = 0;
+						continue;
+					}
 				}
-				if(datagram.Capacity > 0)
-					datagram.Append(RecordSeparator);
-				else {
-					datagram.SendTo(socket, target);
-					datagram.Clear();
+				
+				end = (int)bytes.Position;
+				bytes.WriteByte(RecordSeparator);
+				start = bytes.Position + 1;
+				if(start >= DatagramSize) { 
+					Send(0, end);
+					start = bytes.Position = 0;
 				}
+				
 			}
-			datagram.SendTo(socket, target);
+			Send(0, end);
+		}
+
+		void Send(int offset, int count) {
+			if(count > 0)
+				socket.SendTo(bytes.GetBuffer(), offset, count, SocketFlags.None, target);
 		}
 	}
 }

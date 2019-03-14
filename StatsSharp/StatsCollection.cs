@@ -29,7 +29,7 @@ namespace StatsSharp
 			}
 
 			IEnumerable<StatsValue> SummarizeGauges() =>
-				Gauges.Select(item => new StatsValue("stats.gauges." + item.Key, item.Value.AsDouble()));
+				Gauges.Select(item => new StatsValue("stats.gauges." + item.Key, item.Value.AsFloat()));
 
 			IEnumerable<StatsValue> SummarizeCounts(TimeSpan flushInterval) {
 				foreach(var counter in Counts) {
@@ -40,7 +40,7 @@ namespace StatsSharp
 
 			IEnumerable<StatsValue> SummarizeTimers() {
 				foreach(var timer in Timers) {
-					var items = timer.Value.Select(x => x.AsDouble()).ToList();
+					var items = timer.Value.Select(x => x.AsFloat()).ToList();
 					items.Sort();
 
 					var prefix = "stats.timers." + timer.Key;
@@ -109,7 +109,7 @@ namespace StatsSharp
 					buckets.Gauges[metric.Name] = metric.Value;
 					break;
 				case MetricType.Counter:
-					buckets.Counts.AddOrUpdate(metric.Name, _ => 1, (_, x) => x + (long)metric.Value.Bits);
+					buckets.Counts.AddOrUpdate(metric.Name, _ => 1, (_, x) => x + metric.Value.AsInt32());
 					break;
 				case MetricType.Time:
 					buckets.Timers

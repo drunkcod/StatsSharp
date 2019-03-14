@@ -1,7 +1,6 @@
 using System;
-using System.Diagnostics.Contracts;
 using System.IO;
-using System.Text;
+using System.Security;
 
 namespace StatsSharp
 {
@@ -14,19 +13,20 @@ namespace StatsSharp
 			"|ms"
 		};
 
-		public readonly ulong Bits;
+		readonly long bits;
+
 		public readonly MetricType Type;
 
-		MetricValue(ulong bits, MetricType type) {
-			this.Bits = bits;
+		MetricValue(long bits, MetricType type) {
+			this.bits = bits;
 			this.Type = type;
 		}
 
-		public static MetricValue Gauge(ulong value) => new MetricValue(value, MetricType.Gauge);
-		public static MetricValue GaugeDelta(int delta) => new MetricValue((ulong)delta, MetricType.GaugeDelta);
-		public static MetricValue Counter(long value) => new MetricValue((ulong)value, MetricType.Counter);
-		public static MetricValue Time(ulong value) => new MetricValue(value, MetricType.Time);
-		public static MetricValue Time(double value) => new MetricValue((ulong)BitConverter.DoubleToInt64Bits(value), MetricType.Time | MetricType.Double);
+		public static MetricValue Gauge(ulong value) => new MetricValue((long)value, MetricType.Gauge);
+		public static MetricValue Delta(long delta) => new MetricValue(delta, MetricType.GaugeDelta);
+		public static MetricValue Counter(long value) => new MetricValue(value, MetricType.Counter);
+		public static MetricValue Time(uint value) => new MetricValue(value, MetricType.Time);
+		public static MetricValue Time(double value) => new MetricValue(FloatToBits(value), MetricType.Time | MetricType.Float);
 
 		public override string ToString() {
 			var r = new StringWriter();
@@ -34,9 +34,10 @@ namespace StatsSharp
 			return r.ToString();
 		}
 
-		public double AsDouble() => (Type & MetricType.Double) == 0 
-			? (double)Bits 
-			: BitConverter.Int64BitsToDouble((long)Bits);
+		public double AsFloat() => IsFloat ? BitsToFloat(bits) : bits;
+		public long AsInt32() => IsFloat ? (int)BitsToFloat(bits) : bits;
+
+		public bool IsFloat => (Type & MetricType.Float) == MetricType.Float;
 
 		public void WriteTo(TextWriter output) {
 			output.Write(':');
@@ -46,19 +47,25 @@ namespace StatsSharp
 
 		void WriteValueTo(TextWriter output) {
 			if (Type == MetricType.GaugeDelta)
-				output.Write("{0:+0;-#}", (int)Bits);
+				output.Write("{0:+0;-#}", bits);
 			else output.Write(BoxedBits());
 		}
 
 		public object BoxedBits() {
-			var b = (Type & MetricType.Double) == 0 ? Bits : (ulong)BitConverter.Int64BitsToDouble((long)Bits);
+			var b = IsFloat ? BitsToFloat(bits) : bits;
 			switch(Type & MetricType.MetricTypeMask) {
 				case MetricType.Gauge:
-				case MetricType.Time: return b;
-				case MetricType.GaugeDelta: return ((int)b);
-				case MetricType.Counter: return ((long)b);
+				case MetricType.Time: return (ulong)b;
+				case MetricType.GaugeDelta: return (int)b;
+				case MetricType.Counter: return (int)b;
 				default: throw new InvalidOperationException();
 			}
 		}
+
+		[SecuritySafeCritical]
+		static unsafe long FloatToBits(double value) => BitConverter.DoubleToInt64Bits(value);
+
+		[SecuritySafeCritical]
+		static unsafe double BitsToFloat(long value) => BitConverter.Int64BitsToDouble(value);
 	}
 }

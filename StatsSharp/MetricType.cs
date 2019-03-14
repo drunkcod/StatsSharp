@@ -1,4 +1,4 @@
-﻿namespace StatsSharp
+namespace StatsSharp
 {
 	public enum MetricType : byte
 	{
@@ -7,6 +7,6 @@
 		Counter = 2,
 		Time = 3,
 		MetricTypeMask = 3,
-		Double = 4,
+		Float = 4,
 	}
 }

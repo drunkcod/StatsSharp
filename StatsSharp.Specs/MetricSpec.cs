@@ -26,17 +26,17 @@ namespace StatsSharp.Specs
 			Check.That(() => MetricValue.Gauge(42).BoxedBits() is ulong);
 
 		public void deltas_are_ints() =>
-			Check.That(() => MetricValue.GaugeDelta(-42).BoxedBits() is int);
+			Check.That(() => MetricValue.Delta(-42).BoxedBits() is int);
 
-		public void counters_are_longs() =>
-			Check.That(() => MetricValue.Counter(123).BoxedBits() is long);
+		public void counters_are_ints() =>
+			Check.That(() => MetricValue.Counter(123).BoxedBits() is int);
 
 		public void supports_double_timers() {
 			var value = MetricValue.Time(56.23);
 			Check.That(
 				() => value.BoxedBits() is ulong,
 				() => (ulong)value.BoxedBits() == 56,
-				() => value.AsDouble() == 56.23);
+				() => value.AsFloat() == 56.23);
 		}
 	}
 }
