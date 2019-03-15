@@ -62,10 +62,8 @@ namespace StatsSharp
 			}
 		}
 
-		[SecuritySafeCritical]
-		static unsafe long FloatToBits(double value) => BitConverter.DoubleToInt64Bits(value);
+		static long FloatToBits(double value) => BitConverter.DoubleToInt64Bits(value);
 
-		[SecuritySafeCritical]
-		static unsafe double BitsToFloat(long value) => BitConverter.Int64BitsToDouble(value);
+		static double BitsToFloat(long value) => BitConverter.Int64BitsToDouble(value);
 	}
 }
