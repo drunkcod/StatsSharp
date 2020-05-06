@@ -1,17 +1,19 @@
-﻿using System;
+using System;
 using System.Linq;
 using Cone;
+using Xunit;
 
 namespace StatsSharp.Specs
 {
-	[Describe(typeof(StatsCollection))]
 	public class StatsCollectionSpec
 	{
 		StatsCollection Stats;
 
-		[BeforeEach]
-		public void Given_empty_stats() { Stats = new StatsCollection(); }
+		public StatsCollectionSpec() { 
+			Stats = new StatsCollection(); 
+		}
 
+		[Fact]
 		public void Gauge_has_last_seen_value() {
 			Stats.GaugeAbsoluteValue("MyGauge", 1);
 			Stats.GaugeAbsoluteValue("MyGauge", 2);
@@ -19,6 +21,7 @@ namespace StatsSharp.Specs
 			Check.That(() => Stats.Summarize().Single(x => x.Name == "stats.gauges.MyGauge").Value == 2);
 		}
 
+		[Fact]
 		public void Timer_has_upper_lower_count_sum_mean() {
 			Stats.Timer("MyTimer", TimeSpan.FromMilliseconds(10));
 			Stats.Timer("MyTimer", TimeSpan.Zero);
@@ -34,6 +37,7 @@ namespace StatsSharp.Specs
 			);
 		}
 
+		[Fact]
 		public void Timer_includeds_configured_percentiles() {
 			Stats.Percentiles.Add(90);
 
@@ -48,6 +52,7 @@ namespace StatsSharp.Specs
 			);
 		}
 
+		[Fact]
 		public void Counters_are_per_second() {
 			Stats.Counter("MyCount");
 			Stats.Counter("MyCount", 4);

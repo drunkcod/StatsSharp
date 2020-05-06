@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -54,7 +53,7 @@ namespace StatsSharp.Diagnostics
 		}
 
 		public bool Add(string metricName, string counterName) {
-			if (counters.TryGetValue(metricName, out var found))
+			if (counters.TryGetValue(metricName, out _))
 				return false;
 			var p = new ProcessCounter(metricName, CounterByName(counterName));
 			counters.Add(metricName, p);

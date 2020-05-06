@@ -8,8 +8,7 @@ namespace StatsSharp
 	public class SampleAgent
 	{
 		readonly StatsCollection collectedStats = new StatsCollection();
-
-		Thread worker = new Thread(RunWorker);
+		Thread worker = null;
 
 		public StatsSummary CurrentStats = new StatsSummary(DateTime.UtcNow, new StatsValue[0]);
 		public TimeSpan FlushInterval = TimeSpan.FromSeconds(10);
@@ -25,7 +24,10 @@ namespace StatsSharp
 			if (worker != null && worker.IsAlive)
 				throw new InvalidOperationException("Already started.");
 			if (worker == null)
-				worker = new Thread(RunWorker);
+				worker = new Thread(RunWorker) {
+					IsBackground = true,
+					Name = nameof(SampleAgent),
+				};
 			worker.Start(this);
 		}
 
@@ -36,7 +38,7 @@ namespace StatsSharp
 				var nextFlush = AlignToInterval(DateTime.UtcNow + self.FlushInterval, self.FlushInterval);
 				while(self.worker != null) {
 					sampleTime.Restart();
-					self.Sample?.Invoke(self.Stats);
+					self.ReadSample();
 
 					if (DateTime.UtcNow >= nextFlush) {
 						self.Flush(nextFlush);
@@ -51,6 +53,8 @@ namespace StatsSharp
 			}
 		}
 
+		void ReadSample() => Invoke(Sample, Stats);
+		
 		static void AwaitNextSample(TimeSpan sampleInterval, TimeSpan sampleTime) {
 			var delay = sampleInterval - sampleTime;
 			if (delay <= TimeSpan.Zero)
@@ -65,9 +69,20 @@ namespace StatsSharp
 		}
 
 		public void Flush(DateTime lastFlush) {
-			Flushing?.Invoke(collectedStats);
+			Invoke(Flushing, collectedStats);
 			CurrentStats = collectedStats.Flush(lastFlush, FlushInterval);
-			Flushed?.Invoke(CurrentStats);
+			Invoke(Flushed, CurrentStats);
+		}
+
+		void Invoke<T>(Action<T> action, T args) {
+			if(action == null)
+				return;
+
+			try { 
+				action(args); 
+			} catch(Exception ex) {
+				HandleError(ex);
+			}
 		}
 
 		internal void HandleError(Exception ex) {

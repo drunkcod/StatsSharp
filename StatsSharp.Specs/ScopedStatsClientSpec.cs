@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using Cone;
 using Cone.Helpers;
+using Xunit;
 
 namespace StatsSharp.Specs
 {
-	[Describe(typeof(ScopedStatsClient))]
 	public class ScopedStatsClientSpec
 	{
 		class MyStatsClient : IStatsClient
@@ -20,6 +20,7 @@ namespace StatsSharp.Specs
 			}
 		}
 
+		[Fact]
 		public void adds_prefix_to_metrics() {
 			var baseClient = new MyStatsClient();
 			var scoped = baseClient.Scope("MyStats.");
@@ -31,6 +32,7 @@ namespace StatsSharp.Specs
 			Check.That(() => send.HasBeenCalled);
 		}
 
+		[Fact]
 		public void adds_dot_separator_if_missing() {
 			var baseClient = new MyStatsClient();
 			var scoped = baseClient.Scope("MyStats");
