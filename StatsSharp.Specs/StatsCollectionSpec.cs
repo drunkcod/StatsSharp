@@ -1,13 +1,13 @@
 using System;
 using System.Linq;
-using Cone;
+using CheckThat;
 using Xunit;
 
 namespace StatsSharp.Specs
 {
 	public class StatsCollectionSpec
 	{
-		StatsCollection Stats;
+		readonly StatsCollection Stats;
 
 		public StatsCollectionSpec() { 
 			Stats = new StatsCollection(); 

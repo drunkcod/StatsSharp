@@ -7,10 +7,10 @@ namespace StatsSharp
 {
 	public class SampleAgent
 	{
-		readonly StatsCollection collectedStats = new StatsCollection();
+		readonly StatsCollection collectedStats = new();
 		Thread worker = null;
 
-		public StatsSummary CurrentStats = new StatsSummary(DateTime.UtcNow, new StatsValue[0]);
+		public StatsSummary CurrentStats = new(DateTime.UtcNow, Array.Empty<StatsValue>());
 		public TimeSpan FlushInterval = TimeSpan.FromSeconds(10);
 		public TimeSpan SampleInterval = TimeSpan.FromSeconds(1);
 		public IStatsClient Stats => collectedStats;

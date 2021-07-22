@@ -1,13 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net45;net472</TargetFrameworks>
-    <Version>0.0.0.18</Version>
+    <TargetFrameworks>net5;netstandard2.1;net472</TargetFrameworks>
+    <Version>0.0.0.19</Version>
     <Description>StatsD made sharp</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
     <PackageReference Include="System.Diagnostics.PerformanceCounter">
-      <Version>4.5.0</Version>
+      <Version>5.0.1</Version>
     </PackageReference>
   </ItemGroup>
 </Project>

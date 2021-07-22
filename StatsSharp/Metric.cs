@@ -5,9 +5,9 @@ using System.Text.RegularExpressions;
 
 namespace StatsSharp
 {
-	public struct Metric
+	public readonly struct Metric
 	{
-		static readonly Regex MetricPattern = new Regex(@"(?<name>.+):(?<value>(\+|-)?[0-9]+)\|(?<unit>g|c|ms)", RegexOptions.Compiled);
+		static readonly Regex MetricPattern = new(@"(?<name>.+):(?<value>(\+|-)?[0-9]+)\|(?<unit>g|c|ms)", RegexOptions.Compiled);
 		public readonly string Name;
 		public readonly MetricValue Value;
 
@@ -16,8 +16,8 @@ namespace StatsSharp
 			this.Value = value;
 		}
 
-		public static Metric Time(string name, float value) => new Metric(name, MetricValue.Time(value));
-		public static Metric Time(string name, uint value) => new Metric(name, MetricValue.Time(value));
+		public static Metric Time(string name, float value) => new(name, MetricValue.Time(value));
+		public static Metric Time(string name, uint value) => new(name, MetricValue.Time(value));
 
 		public static bool TryParse(string input, out Metric result) {
 			var m = MetricPattern.Match(input);
@@ -34,15 +34,14 @@ namespace StatsSharp
 		}
 
 		public static string GetName(string path) {
-			var parts = path.Split('.');
-			return parts[parts.Length - 1];
+			var n = path.LastIndexOf('.');
+			return path.Substring(n + 1, path.Length - n - 1);
 		}
 
 		public void WriteTo(MemoryStream ms, Encoding encoding) {
-			using (var w = new StreamWriter(ms, encoding, 64, leaveOpen: true)) {
-				w.Write(Name);
-				Value.WriteTo(w);
-			}
+			using var w = new StreamWriter(ms, encoding, 64, leaveOpen: true);
+			w.Write(Name);
+			Value.WriteTo(w);
 		}
 
 		static MetricValue ParseValue(string value, string type) {

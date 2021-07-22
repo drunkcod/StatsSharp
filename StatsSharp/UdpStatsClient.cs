@@ -16,20 +16,30 @@ namespace StatsSharp
 		const int DatagramSize = 512;
 		const byte RecordSeparator = (byte)'\n';
 
-		readonly Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-		readonly IPEndPoint target;
-		readonly MemoryStream bytes = new MemoryStream(DatagramSize);
+		readonly Socket socket = new(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+		IPEndPoint target;
+		
+		readonly MemoryStream bytes = new(DatagramSize);
+		readonly string hostNameOrAddress;
 
-		public UdpStatsClient(IPEndPoint target) {
-			this.target = target;
+		public UdpStatsClient(string hostNameOrAddress, int port) {
+			this.hostNameOrAddress = hostNameOrAddress;
+			this.target = new IPEndPoint(IPAddress.Loopback, port);
+		}
+
+		public void RefreshEndPoint() {
+			if (!IPAddress.TryParse(hostNameOrAddress, out var ip)) {
+				ip = Dns.GetHostAddresses(hostNameOrAddress).First(x => x.AddressFamily == AddressFamily.InterNetwork);
+			}
+
+			if(target.Address != ip)
+				target = new IPEndPoint(ip, target.Port);
 		}
 
 		public static UdpStatsClient Create(string server, int port = 8125) {
-			IPAddress ip;
-			if(!IPAddress.TryParse(server, out ip)) {
-				ip = Dns.GetHostAddresses(server).First(x => x.AddressFamily == AddressFamily.InterNetwork);
-			}
-			return new UdpStatsClient(new IPEndPoint(ip, port));
+			var client = new UdpStatsClient(server, port);
+			client.RefreshEndPoint();
+			return client;
 		}
 
 		public void Send(Metric metric) {

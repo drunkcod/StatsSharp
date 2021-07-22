@@ -4,9 +4,9 @@ using System.Text;
 
 namespace StatsSharp.Graphite
 {
-	public struct GraphiteValue
+	public readonly struct GraphiteValue
 	{
-		static readonly DateTime UnixExpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+		static readonly DateTime UnixExpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
 		public readonly string Name;
 		public readonly double Value;
@@ -26,7 +26,7 @@ namespace StatsSharp.Graphite
 			this.unixTime = unixTimestamp;
 		}
 
-		public byte[] GetBytes(Encoding encoding) => 
-			encoding.GetBytes(string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", Name, Value, unixTime));
+		public override string ToString() =>
+			string.Format(CultureInfo.InvariantCulture, "{0} {1} {2}", Name, Value, unixTime);
 	}
 }

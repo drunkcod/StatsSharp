@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Cone;
-using Cone.Helpers;
+using CheckThat;
+using CheckThat.Helpers;
 using Xunit;
 
 namespace StatsSharp.Specs

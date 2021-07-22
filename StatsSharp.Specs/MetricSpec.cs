@@ -1,4 +1,4 @@
-using Cone;
+using CheckThat;
 using Xunit;
 
 namespace StatsSharp.Specs

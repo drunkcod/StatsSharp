@@ -5,7 +5,11 @@ using System.Linq;
 
 namespace StatsSharp.Diagnostics
 {
-	public class ProcessMetrics : IDisposable
+#if NET5_0_OR_GREATER
+	using System.Runtime.Versioning;
+	[SupportedOSPlatform("windows")]
+#endif
+	public sealed class ProcessMetrics : IDisposable
 	{
 		class ProcessCounter : IDisposable
 		{
@@ -21,29 +25,21 @@ namespace StatsSharp.Diagnostics
 
 			public void Dispose() => counter.Dispose();
 
-			public Metric Read() => new Metric(key, ReadNext());
+			public Metric Read() => new(key, ReadNext());
 
-			MetricValue ReadNext() {
-				switch (counter.CounterType) {
-					default: return MetricValue.Time(counter.NextValue());
-					case PerformanceCounterType.NumberOfItems64: return MetricValue.Time(counter.NextSample().RawValue);
-				}
-			}
+			MetricValue ReadNext() =>
+				counter.CounterType switch {
+					PerformanceCounterType.NumberOfItems64 => MetricValue.Time(counter.NextSample().RawValue),
+					_ => MetricValue.Time(counter.NextValue()),
+				};
 
 			public void Rebind(PerformanceCounter newCounter) {
 				counter.Dispose();
 				counter = newCounter;
 			}
-
-			static long GetTicks(CounterSample sample) {
-				var ticks = sample.CounterTimeStamp - sample.RawValue;
-				if (sample.CounterFrequency == TimeSpan.TicksPerSecond)
-					return ticks;
-				return TimeSpan.FromSeconds(1.0 * ticks / sample.CounterFrequency).Ticks;
-			}
 		}
 
-		readonly Dictionary<string, ProcessCounter> counters = new Dictionary<string, ProcessCounter>();
+		readonly Dictionary<string, ProcessCounter> counters = new();
 		readonly int? pid;
 		PerformanceCounter idProcess;
 
@@ -75,13 +71,15 @@ namespace StatsSharp.Diagnostics
 
 		bool IsLocalCounter => idProcess.MachineName == ".";
 
+#if NET5_0_OR_GREATER
+		public static ProcessMetrics Create() => Create(Environment.ProcessId);
+#else
 		public static ProcessMetrics Create() => Create(Process.GetCurrentProcess().Id);
-
-		public static ProcessMetrics Create(int pid) =>
-			new ProcessMetrics(pid, FindByPid(pid));
+#endif
+		public static ProcessMetrics Create(int pid) => new(pid, FindByPid(pid));
 
 		public static ProcessMetrics Create(string name, string machine) =>
-			new ProcessMetrics(null, new PerformanceCounter("Process", "ID Process", name, machine));
+			new(null, new PerformanceCounter("Process", "ID Process", name, machine));
 
 		static PerformanceCounter FindByPid(int pid) {
 			var processCounters = new PerformanceCounterCategory("Process");

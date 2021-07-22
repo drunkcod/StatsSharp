@@ -11,13 +11,13 @@ namespace StatsSharp.Graphite
 		void Send(IEnumerable<GraphiteValue> values);
 	}
 
-	public class GraphiteTextClient : IDisposable, IGraphiteClient, IStatsClient
+	public sealed class GraphiteTextClient : IDisposable, IGraphiteClient, IStatsClient
 	{
 		static readonly byte[] RecordSeparator = { (byte)'\n' };
 
 		readonly Socket socket;
 
-		public Encoding Encoding => Encoding.UTF8;
+		public static Encoding Encoding => Encoding.UTF8;
 
 		GraphiteTextClient(string host, int port) {
 			this.socket = new Socket(SocketType.Stream, ProtocolType.IP);
@@ -25,11 +25,32 @@ namespace StatsSharp.Graphite
 		}
 
 		public static GraphiteTextClient Create(string host, int port = 2003) =>
-			new GraphiteTextClient(host, port);
+			new(host, port);
 
 		public void Send(GraphiteValue value) {
-			socket.Send(value.GetBytes(Encoding));
-			socket.Send(RecordSeparator);
+			var s = value.ToString();
+			if(!SendFast(s)) {
+				socket.Send(Encoding.GetBytes(s.ToString()));
+				socket.Send(RecordSeparator);
+			}
+		}
+
+		bool SendFast(string value) {
+#if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+			try {
+				Span<byte> bytes = stackalloc byte[256];
+				var n = Encoding.GetBytes(value, bytes);
+				if(n < (bytes.Length - 1)) {
+					bytes[n] = (byte)'\n';
+					socket.Send(bytes.Slice(0, n + 1));
+				}
+				return true;
+			} catch {
+				return false;
+			}
+#else
+			return false;
+#endif
 		}
 
 		public void Send(IEnumerable<GraphiteValue> values) {
