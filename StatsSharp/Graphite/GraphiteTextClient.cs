@@ -17,7 +17,7 @@ namespace StatsSharp.Graphite
 
 		readonly Socket socket;
 
-		public static Encoding Encoding => Encoding.UTF8;
+		public static readonly Encoding Encoding = new UTF8Encoding(false);
 
 		GraphiteTextClient(string host, int port) {
 			this.socket = new Socket(SocketType.Stream, ProtocolType.IP);
@@ -38,11 +38,11 @@ namespace StatsSharp.Graphite
 		bool SendFast(string value) {
 #if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
 			try {
-				Span<byte> bytes = stackalloc byte[256];
-				var n = Encoding.GetBytes(value, bytes);
-				if(n < (bytes.Length - 1)) {
-					bytes[n] = (byte)'\n';
-					socket.Send(bytes.Slice(0, n + 1));
+				Span<byte> bytes = stackalloc byte[value.Length + 3];
+				var n = Encoding.GetBytes(value, bytes) + 1;
+				if(n < bytes.Length) {
+					bytes[n - 1] = (byte)'\n';
+					socket.Send(bytes.Slice(0, n));
 				}
 				return true;
 			} catch {

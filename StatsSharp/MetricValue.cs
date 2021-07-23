@@ -1,10 +1,9 @@
 using System;
 using System.IO;
-using System.Security;
 
 namespace StatsSharp
 {
-	public struct MetricValue
+	public readonly struct MetricValue
 	{
 		static readonly string[] TypeSuffix = {
 			"|g",
@@ -14,7 +13,6 @@ namespace StatsSharp
 		};
 
 		readonly long bits;
-
 		public readonly MetricType Type;
 
 		MetricValue(long bits, MetricType type) {
@@ -22,11 +20,11 @@ namespace StatsSharp
 			this.Type = type;
 		}
 
-		public static MetricValue Gauge(ulong value) => new MetricValue((long)value, MetricType.Gauge);
-		public static MetricValue Delta(long delta) => new MetricValue(delta, MetricType.GaugeDelta);
-		public static MetricValue Counter(long value) => new MetricValue(value, MetricType.Counter);
-		public static MetricValue Time(uint value) => new MetricValue(value, MetricType.Time);
-		public static MetricValue Time(double value) => new MetricValue(FloatToBits(value), MetricType.Time | MetricType.Float);
+		public static MetricValue Gauge(ulong value) => new((long)value, MetricType.Gauge);
+		public static MetricValue Delta(long delta) => new(delta, MetricType.GaugeDelta);
+		public static MetricValue Counter(long value) => new(value, MetricType.Counter);
+		public static MetricValue Time(uint value) => new(value, MetricType.Time);
+		public static MetricValue Time(double value) => new(FloatToBits(value), MetricType.Time | MetricType.Float);
 
 		public override string ToString() {
 			var r = new StringWriter();
@@ -48,7 +46,19 @@ namespace StatsSharp
 		void WriteValueTo(TextWriter output) {
 			if (Type == MetricType.GaugeDelta)
 				output.Write("{0:+0;-#}", bits);
-			else output.Write(BoxedBits());
+			else {
+				var b = IsFloat ? BitsToFloat(bits) : bits;
+				switch (Type & MetricType.MetricTypeMask) {
+					case MetricType.Gauge:
+					case MetricType.Time: output.Write((ulong)b); 
+						break;
+					case MetricType.GaugeDelta: output.Write((int)b); 
+						break;
+					case MetricType.Counter: output.Write((int)b); 
+						break;
+					default: throw new InvalidOperationException();
+				}
+			}
 		}
 
 		public object BoxedBits() {
@@ -63,7 +73,6 @@ namespace StatsSharp
 		}
 
 		static long FloatToBits(double value) => BitConverter.DoubleToInt64Bits(value);
-
 		static double BitsToFloat(long value) => BitConverter.Int64BitsToDouble(value);
 	}
 }

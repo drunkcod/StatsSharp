@@ -20,17 +20,18 @@ namespace StatsSharp
 		IPEndPoint target;
 		
 		readonly MemoryStream bytes = new(DatagramSize);
+		readonly StreamWriter writer;
 		readonly string hostNameOrAddress;
 
 		public UdpStatsClient(string hostNameOrAddress, int port) {
 			this.hostNameOrAddress = hostNameOrAddress;
 			this.target = new IPEndPoint(IPAddress.Loopback, port);
+			this.writer = new StreamWriter(bytes, Encoding, DatagramSize, leaveOpen: true);
 		}
 
 		public void RefreshEndPoint() {
-			if (!IPAddress.TryParse(hostNameOrAddress, out var ip)) {
+			if (!IPAddress.TryParse(hostNameOrAddress, out var ip))
 				ip = Dns.GetHostAddresses(hostNameOrAddress).First(x => x.AddressFamily == AddressFamily.InterNetwork);
-			}
 
 			if(target.Address != ip)
 				target = new IPEndPoint(ip, target.Port);
@@ -44,7 +45,7 @@ namespace StatsSharp
 
 		public void Send(Metric metric) {
 			bytes.Position = 0;
-			metric.WriteTo(bytes, Encoding);
+			Write(metric);
 			if(bytes.Position > DatagramSize)
 				throw new ArgumentException(MetricTooLong);
 			Send(0, (int)bytes.Position);
@@ -54,7 +55,7 @@ namespace StatsSharp
 			var start = bytes.Position = 0;
 			var end = 0;
 			foreach(var item in metrics) {
-				item.WriteTo(bytes, Encoding);
+				Write(item);
 				if (bytes.Position > DatagramSize) {
 					Send(0, end);
 					var len = (int)(bytes.Position - start);
@@ -73,10 +74,14 @@ namespace StatsSharp
 				if(start >= DatagramSize) { 
 					Send(0, end);
 					start = bytes.Position = 0;
-				}
-				
+				}				
 			}
 			Send(0, end);
+		}
+
+		void Write(Metric metric) {
+			metric.WriteTo(writer);
+			writer.Flush();
 		}
 
 		void Send(int offset, int count) {

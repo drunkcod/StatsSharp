@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net5;netstandard2.1;net472</TargetFrameworks>
-    <Version>0.0.0.19</Version>
+    <TargetFrameworks>net5;netstandard2.1;netstandard2.0;net472</TargetFrameworks>
+    <Version>0.0.0.20</Version>
     <Description>StatsD made sharp</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <LangVersion>latest</LangVersion>

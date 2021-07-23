@@ -38,8 +38,7 @@ namespace StatsSharp
 			return path.Substring(n + 1, path.Length - n - 1);
 		}
 
-		public void WriteTo(MemoryStream ms, Encoding encoding) {
-			using var w = new StreamWriter(ms, encoding, 64, leaveOpen: true);
+		public void WriteTo(TextWriter w) {
 			w.Write(Name);
 			Value.WriteTo(w);
 		}
