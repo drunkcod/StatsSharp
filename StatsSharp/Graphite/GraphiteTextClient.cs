@@ -13,19 +13,32 @@ namespace StatsSharp.Graphite
 
 	public sealed class GraphiteTextClient : IDisposable, IGraphiteClient, IStatsClient
 	{
+		const int MaxStackAlloc = 1024;
 		static readonly byte[] RecordSeparator = { (byte)'\n' };
 
-		readonly Socket socket;
+		Socket socket;
+
+		readonly string host;
+		readonly int port;
 
 		public static readonly Encoding Encoding = new UTF8Encoding(false);
 
-		GraphiteTextClient(string host, int port) {
-			this.socket = new Socket(SocketType.Stream, ProtocolType.IP);
-			socket.Connect(host, port);
+		public GraphiteTextClient(string host, int port) {
+			this.host = host;
+			this.port = port;
 		}
 
-		public static GraphiteTextClient Create(string host, int port = 2003) =>
-			new(host, port);
+		public static GraphiteTextClient Connect(string host, int port = 2003) {
+			var client = new GraphiteTextClient(host, port);
+			client.Connect();
+			return client;
+		}
+
+		public void Connect() {
+			socket = new Socket(SocketType.Stream, ProtocolType.IP);
+			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontLinger, true);
+			socket.Connect(host, port);
+		}
 
 		public void Send(GraphiteValue value) {
 			var s = value.ToString();
@@ -37,8 +50,10 @@ namespace StatsSharp.Graphite
 
 		bool SendFast(string value) {
 #if NETSTANDARD2_1_OR_GREATER || NET5_0_OR_GREATER
+			if((MaxStackAlloc - 1) < value.Length)
+				return false;
 			try {
-				Span<byte> bytes = stackalloc byte[value.Length + 3];
+				Span<byte> bytes = stackalloc byte[MaxStackAlloc];
 				var n = Encoding.GetBytes(value, bytes) + 1;
 				if(n < bytes.Length) {
 					bytes[n - 1] = (byte)'\n';
@@ -61,7 +76,7 @@ namespace StatsSharp.Graphite
 		public void Close() =>
 			socket.Close();
 
-		void IDisposable.Dispose() =>
+		public void Dispose() =>
 			socket.Dispose();
 
 		public void Send(Metric metric) =>

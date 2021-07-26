@@ -1,6 +1,6 @@
 namespace StatsSharp
 {
-	public struct StatsValue
+	public readonly struct StatsValue
 	{
 		public readonly string Name;
 		public readonly double Value;

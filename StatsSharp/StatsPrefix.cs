@@ -1,6 +1,6 @@
 namespace StatsSharp
 {
-	public struct StatsPrefix
+	public readonly struct StatsPrefix
 	{
 		readonly string prefix;
 
